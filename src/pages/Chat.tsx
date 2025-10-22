@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect } from "react";
+import { Navigation } from "@/components/Navigation";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { streamChat } from "@/utils/chatStream";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 type Message = { role: "user" | "assistant"; content: string };
 
-const Index = () => {
+const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -64,30 +65,19 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-secondary flex flex-col">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-gradient-primary flex items-center justify-center shadow-glow">
-            <MessageSquare className="h-6 w-6 text-foreground" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">AI ChatBot</h1>
-            <p className="text-xs text-muted-foreground">Powered by Lovable AI</p>
-          </div>
-        </div>
-      </header>
+      <Navigation />
 
       {/* Chat Area */}
-      <main className="flex-1 container mx-auto px-4 py-6 flex flex-col max-w-4xl">
+      <main className="flex-1 container mx-auto px-4 pt-24 pb-6 flex flex-col max-w-4xl">
         {messages.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center space-y-4 animate-in fade-in-50 duration-700">
               <div className="inline-flex h-20 w-20 rounded-2xl bg-gradient-primary items-center justify-center shadow-glow">
                 <Sparkles className="h-10 w-10 text-foreground" />
               </div>
-              <h2 className="text-3xl font-bold text-foreground">Welcome to AI ChatBot</h2>
+              <h2 className="text-3xl font-bold text-foreground">Start a Conversation</h2>
               <p className="text-muted-foreground max-w-md">
-                Start a conversation with our AI assistant. Ask anything, get instant responses!
+                Ask me anything! I'm here to help with questions, ideas, writing, and more.
               </p>
             </div>
           </div>
@@ -110,4 +100,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Chat;

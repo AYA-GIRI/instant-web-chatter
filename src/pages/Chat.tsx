@@ -64,7 +64,7 @@ const Chat = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-secondary flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
 
       {/* Chat Area */}

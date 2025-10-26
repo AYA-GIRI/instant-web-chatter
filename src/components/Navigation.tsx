@@ -8,10 +8,10 @@ export const Navigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { name: "Home", path: "/" },
-    { name: "Chat", path: "/chat" },
-    { name: "Features", path: "/#features" },
-    { name: "About", path: "/#about" },
+    { name: "Главная", path: "/" },
+    { name: "Методички", path: "/methods" },
+    { name: "Практикум", path: "/practicum" },
+    { name: "О нас", path: "/about" },
   ];
 
   return (
@@ -23,7 +23,7 @@ export const Navigation = () => {
             <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
               <MessageSquare className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-foreground">AI ChatBot</span>
+            <span className="text-xl font-bold text-foreground">Internium</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -39,11 +39,9 @@ export const Navigation = () => {
                 {item.name}
               </Link>
             ))}
-            <Link to="/chat">
-              <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                Try Now
-              </Button>
-            </Link>
+          <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+            Начать обучение
+          </Button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -71,11 +69,12 @@ export const Navigation = () => {
                   {item.name}
                 </Link>
               ))}
-              <Link to="/chat" onClick={() => setMobileMenuOpen(false)}>
-                <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                  Try Now
-                </Button>
-              </Link>
+                  <Button
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+                  >
+                    Начать обучение
+                  </Button>
             </div>
           </div>
         )}

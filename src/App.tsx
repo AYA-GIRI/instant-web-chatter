@@ -4,8 +4,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
-import Chat from "./pages/Chat";
+import Methods from "./pages/Methods";
+import Practicum from "./pages/Practicum";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
+import { FloatingChat } from "@/components/FloatingChat";
 
 const queryClient = new QueryClient();
 
@@ -17,10 +20,13 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/chat" element={<Chat />} />
+          <Route path="/methods" element={<Methods />} />
+          <Route path="/practicum" element={<Practicum />} />
+          <Route path="/about" element={<About />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <FloatingChat />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

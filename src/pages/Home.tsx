@@ -28,22 +28,23 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent relative overflow-hidden">
       <Navigation />
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
+      <section className="pt-24 pb-12 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="text-foreground space-y-8 animate-in fade-in slide-in-from-left duration-700">
               <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-                Центр разработки AI-инноваций Texel
+                <span className="text-gradient">Центр разработки</span> <br />
+                AI-инноваций Texel
               </h1>
               <p className="text-2xl text-muted-foreground">
                 Стажировка по созданию ИИ-инноваций и бизнес-процессов на базе мультиагентных систем с GPT
               </p>
-              
+
               <ul className="space-y-4 text-lg">
                 <li className="flex items-start gap-3">
                   <span className="text-primary text-2xl">•</span>
@@ -65,18 +66,18 @@ const Home = () => {
 
               <div className="flex flex-wrap gap-4">
                 <Link to="/practicum">
-                  <Button 
-                    size="lg" 
-                    className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg px-8 py-6 shadow-lg"
+                  <Button
+                    size="lg"
+                    className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg px-8 py-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 active:scale-95"
                   >
                     Подать заявку на стажировку
                   </Button>
                 </Link>
                 <Link to="/about">
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
-                    className="border-border text-foreground hover:bg-muted text-lg px-8 py-6"
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-border text-foreground hover:bg-primary hover:text-white text-lg px-8 py-6 hover:-translate-y-1 transition-all duration-300 active:scale-95"
                   >
                     О программе
                   </Button>
@@ -86,7 +87,7 @@ const Home = () => {
 
             {/* Right Content - Visual */}
             <div className="relative animate-in fade-in slide-in-from-right duration-700">
-              <div className="relative rounded-2xl bg-card p-8 shadow-lg border border-border">
+              <div className="relative rounded-2xl glass-panel p-8 border border-white/20 animate-float">
                 <div className="relative space-y-4">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
@@ -116,59 +117,58 @@ const Home = () => {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-4 bg-secondary/30">
+      <section id="features" className="py-12 px-4 bg-secondary/30">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16 animate-in fade-in duration-700">
             <h2 className="text-4xl font-bold text-foreground mb-4">Возможности программы</h2>
             <p className="text-xl text-muted-foreground">Практическое обучение работе с AI для реальных бизнес-задач</p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10">
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="bg-card rounded-xl p-6 border border-border hover:border-primary transition-all hover:shadow-lg animate-in fade-in slide-in-from-bottom duration-700"
+                className="glass-panel rounded-xl p-8 hover:border-primary/50 transition-all hover:shadow-glow hover:-translate-y-2 duration-300 animate-in fade-in slide-in-from-bottom"
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                  <feature.icon className="h-6 w-6 text-primary" />
+                <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6">
+                  <feature.icon className="h-7 w-7 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
+                <h3 className="text-2xl font-semibold text-foreground mb-3">{feature.title}</h3>
+                <p className="text-lg text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* About Section */}
-      <section id="about" className="py-20 px-4">
+      <section id="about" className="py-12 px-4">
         <div className="container mx-auto max-w-6xl text-center animate-in fade-in duration-700">
           <h2 className="text-4xl font-bold text-foreground mb-4">О нас</h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Центр разработки AI-инноваций Texel — уникальная программа стажировки для студентов и молодых специалистов, 
-            направленная на практическое освоение передовых AI-технологий (ChatGPT, DeepSeek) и участие в реальных 
-            проектах компании. Мы создаём новое поколение специалистов с суперспособностями в применении AI для решения 
+            Центр разработки AI-инноваций Texel — уникальная программа стажировки для студентов и молодых специалистов,
+            направленная на практическое освоение передовых AI-технологий (ChatGPT, DeepSeek) и участие в реальных
+            проектах компании. Мы создаём новое поколение специалистов с суперспособностями в применении AI для решения
             сложных бизнес-задач.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link to="/about">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg px-8 py-6 shadow-lg"
               >
                 Узнать больше о нас
               </Button>
             </Link>
-                <Link to="/methods">
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
-                    className="border-border text-foreground hover:bg-muted text-lg px-8 py-6"
-                  >
-                    Методические материалы
-                  </Button>
-                </Link>
+            <Link to="/methods">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-border text-foreground hover:bg-muted text-lg px-8 py-6"
+              >
+                Методические материалы
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

@@ -36,7 +36,7 @@ const About = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       <Navigation />
 
       {/* Hero Section */}
@@ -50,7 +50,7 @@ const About = () => {
               Центр разработки AI-инноваций Texel
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto font-sans">
-              Программа стажировки по созданию ИИ-инноваций и бизнес-процессов 
+              Программа стажировки по созданию ИИ-инноваций и бизнес-процессов
               на базе мультиагентных систем с GPT для студентов и молодых специалистов
             </p>
           </div>
@@ -60,7 +60,7 @@ const About = () => {
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
-                <Card key={index} className="bg-card/50 backdrop-blur-sm border-border">
+                <Card key={index} className="glass-panel border-white/40">
                   <CardHeader className="text-center">
                     <div className="inline-flex h-12 w-12 rounded-lg bg-primary/10 items-center justify-center mb-4 mx-auto">
                       <Icon className="h-6 w-6 text-primary" />
@@ -80,12 +80,12 @@ const About = () => {
                 О программе стажировки
               </h2>
               <p className="text-lg text-foreground font-sans">
-                <strong>Internium</strong> — это инновационная платформа для стажировки студентов и молодых специалистов 
-                в центре разработки AI-инноваций Texel. Мы создаём новое поколение профессионалов, владеющих 
+                <strong>Internium</strong> — это инновационная платформа для стажировки студентов и молодых специалистов
+                в центре разработки AI-инноваций Texel. Мы создаём новое поколение профессионалов, владеющих
                 передовыми AI-технологиями (ChatGPT, DeepSeek) и способных применять их для решения сложных бизнес-задач.
               </p>
               <p className="text-lg text-foreground font-sans">
-                Программа сочетает практическое обучение с реальными проектами компании, менторские сессии 
+                Программа сочетает практическое обучение с реальными проектами компании, менторские сессии
                 и возможность запуска собственных AI-стартапов. Длительность программы — 1 учебный год.
               </p>
             </div>
@@ -128,7 +128,7 @@ const About = () => {
               {achievements.map((achievement, index) => {
                 const Icon = achievement.icon;
                 return (
-                  <Card key={index} className="bg-card/50 backdrop-blur-sm hover:border-primary transition-all">
+                  <Card key={index} className="glass-panel hover:border-primary transition-all border-white/40">
                     <CardHeader>
                       <div className="inline-flex h-12 w-12 rounded-lg bg-primary/10 items-center justify-center mb-4">
                         <Icon className="h-6 w-6 text-primary" />
@@ -158,19 +158,19 @@ const About = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-primary-foreground font-sans">
-                    Возможность применить теоретические знания на практике, получить реальный 
+                    Возможность применить теоретические знания на практике, получить реальный
                     опыт работы с AI и построить карьеру в технологической индустрии
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-card/50 backdrop-blur-sm border-border">
+              <Card className="glass-panel border-white/40">
                 <CardHeader>
                   <CardTitle className="text-xl font-heading">Начинающим специалистам</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground font-sans">
-                    Погружение в передовые AI-технологии (ChatGPT, DeepSeek), развитие практических 
+                    Погружение в передовые AI-технологии (ChatGPT, DeepSeek), развитие практических
                     навыков и суперспособностей в применении ИИ для решения задач
                   </p>
                 </CardContent>
@@ -182,7 +182,7 @@ const About = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-primary-foreground font-sans">
-                    Инкубационная программа для запуска собственных AI-стартапов с поддержкой 
+                    Инкубационная программа для запуска собственных AI-стартапов с поддержкой
                     экспертов и доступом к технологиям Texel
                   </p>
                 </CardContent>
@@ -196,7 +196,7 @@ const About = () => {
               Готовы начать стажировку?
             </h2>
             <p className="text-lg text-primary-foreground mb-6 max-w-2xl mx-auto font-sans">
-              Подайте заявку на участие в программе стажировки по созданию AI-инноваций и получите 
+              Подайте заявку на участие в программе стажировки по созданию AI-инноваций и получите
               практический опыт работы с ChatGPT, DeepSeek и передовыми AI-технологиями
             </p>
             <div className="flex flex-wrap gap-4 justify-center">

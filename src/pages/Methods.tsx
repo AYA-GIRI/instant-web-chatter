@@ -181,7 +181,7 @@ const Methods = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       <Navigation />
 
       {/* Hero Section */}
@@ -261,7 +261,7 @@ const Methods = () => {
             {filteredMethods.map((method) => {
               const Icon = method.icon;
               return (
-                <Card key={method.id} className="hover:shadow-lg transition-shadow">
+                <Card key={method.id} className="glass-panel hover:shadow-lg transition-shadow border-white/40">
                   <CardHeader>
                     <div className="flex items-start gap-4">
                       <div className="p-3 rounded-lg bg-gradient-primary text-primary-foreground">

@@ -84,7 +84,7 @@ export const FloatingChat = () => {
             setIsOpen(true);
             setIsMinimized(false);
           }}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-accent shadow-lg hover:bg-accent/90 transition-all hover:scale-110 flex items-center justify-center z-50"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-accent shadow-lg hover:bg-accent/90 transition-all hover:scale-110 flex items-center justify-center z-50 animate-pulse-glow"
           aria-label="Открыть AI-ассистента"
         >
           <Sparkles className="h-6 w-6 text-white" />
@@ -94,9 +94,9 @@ export const FloatingChat = () => {
       {/* Chat Modal */}
       {isOpen && (
         <div className="fixed bottom-6 right-6 w-96 z-50 animate-in slide-in-from-bottom-5 duration-300">
-          <Card className="shadow-2xl border-border">
+          <Card className="shadow-2xl border-white/20 glass-panel">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border bg-card">
+            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/50 backdrop-blur-sm">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center">
                   <Sparkles className="h-5 w-5 text-white" />
@@ -133,33 +133,31 @@ export const FloatingChat = () => {
             {/* Content */}
             {!isMinimized && (
               <>
-                <div className="h-96 overflow-y-auto p-4 space-y-4 bg-background">
+                <div className="h-96 overflow-y-auto p-4 space-y-4 bg-transparent">
                   {messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                    <div className="text-center space-y-2">
-                      <p className="text-sm text-muted-foreground">
-                        Здравствуйте! 👋
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Я ваш AI-ассистент. Задайте свой вопрос, и я помогу вам
-                      </p>
-                    </div>
+                      <div className="text-center space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          Здравствуйте! 👋
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Я ваш AI-ассистент. Задайте свой вопрос, и я помогу вам
+                        </p>
+                      </div>
                     </div>
                   ) : (
                     <>
                       {messages.map((msg, idx) => (
                         <div
                           key={idx}
-                          className={`flex ${
-                            msg.role === "user" ? "justify-end" : "justify-start"
-                          }`}
+                          className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"
+                            }`}
                         >
                           <div
-                            className={`max-w-[80%] rounded-lg p-3 ${
-                              msg.role === "user"
-                                ? "bg-accent text-white"
-                                : "bg-secondary text-foreground"
-                            }`}
+                            className={`max-w-[80%] rounded-lg p-3 ${msg.role === "user"
+                              ? "bg-accent text-white"
+                              : "bg-secondary text-foreground"
+                              }`}
                           >
                             <p className="text-sm whitespace-pre-wrap">
                               {msg.content}
@@ -184,7 +182,7 @@ export const FloatingChat = () => {
                 </div>
 
                 {/* Input */}
-                <div className="p-4 border-t border-border bg-card">
+                <div className="p-4 border-t border-white/10 bg-white/50 backdrop-blur-sm">
                   <div className="flex gap-2">
                     <Textarea
                       value={input}

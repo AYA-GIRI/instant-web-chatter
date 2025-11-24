@@ -55,7 +55,7 @@ const Practicum = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-transparent">
       <Navigation />
 
       {/* Hero Section */}
@@ -130,94 +130,92 @@ const Practicum = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredTasks.map((task) => {
-              const DifficultyIcon =
-                task.difficulty === "easy"
-                  ? CheckCircle2
-                  : task.difficulty === "medium"
-                  ? TrendingUp
-                  : Zap;
-              const CategoryIcon =
-                task.category === "python"
-                  ? Code
-                  : task.category === "data"
-                  ? TrendingUp
-                  : task.category === "ml"
-                  ? Target
-                  : Sparkles;
+                const DifficultyIcon =
+                  task.difficulty === "easy"
+                    ? CheckCircle2
+                    : task.difficulty === "medium"
+                      ? TrendingUp
+                      : Zap;
+                const CategoryIcon =
+                  task.category === "python"
+                    ? Code
+                    : task.category === "data"
+                      ? TrendingUp
+                      : task.category === "ml"
+                        ? Target
+                        : Sparkles;
 
-              return (
-                <Card
-                  key={task.id}
-                  className="hover:border-primary transition-all hover:shadow-lg"
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`h-12 w-12 rounded-lg flex items-center justify-center ${
-                            task.category === "python"
+                return (
+                  <Card
+                    key={task.id}
+                    className="glass-panel hover:border-primary transition-all hover:shadow-lg border-white/40"
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`h-12 w-12 rounded-lg flex items-center justify-center ${task.category === "python"
                               ? "bg-blue-500/10"
                               : task.category === "data"
-                              ? "bg-green-500/10"
-                              : task.category === "ml"
-                              ? "bg-purple-500/10"
-                              : "bg-primary/10"
-                          }`}
-                        >
-                          <CategoryIcon
-                            className={`h-6 w-6 ${
-                              task.category === "python"
+                                ? "bg-green-500/10"
+                                : task.category === "ml"
+                                  ? "bg-purple-500/10"
+                                  : "bg-primary/10"
+                              }`}
+                          >
+                            <CategoryIcon
+                              className={`h-6 w-6 ${task.category === "python"
                                 ? "text-blue-500"
                                 : task.category === "data"
-                                ? "text-green-500"
-                                : task.category === "ml"
-                                ? "text-purple-500"
-                                : "text-primary"
-                            }`}
-                          />
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">{task.title}</CardTitle>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-muted-foreground">
-                              {task.duration}
-                            </span>
-                            <Badge className={getDifficultyColor(task.difficulty)}>
-                              {task.difficulty === "easy"
-                                ? "Легко"
-                                : task.difficulty === "medium"
-                                ? "Средне"
-                                : "Сложно"}
-                            </Badge>
+                                  ? "text-green-500"
+                                  : task.category === "ml"
+                                    ? "text-purple-500"
+                                    : "text-primary"
+                                }`}
+                            />
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg">{task.title}</CardTitle>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-muted-foreground">
+                                {task.duration}
+                              </span>
+                              <Badge className={getDifficultyColor(task.difficulty)}>
+                                {task.difficulty === "easy"
+                                  ? "Легко"
+                                  : task.difficulty === "medium"
+                                    ? "Средне"
+                                    : "Сложно"}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
+                        {getStatusIcon(task.status)}
                       </div>
-                      {getStatusIcon(task.status)}
-                    </div>
-                    <CardDescription>{task.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {task.tags.map((tag, idx) => (
-                        <Badge
-                          key={idx}
-                          variant="outline"
-                          className="text-xs"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                    <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                      {task.status === "completed"
-                        ? "Повторить"
-                        : task.status === "in-progress"
-                        ? "Продолжить"
-                        : "Начать"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
+                      <CardDescription>{task.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {task.tags.map((tag, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                      <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+                        {task.status === "completed"
+                          ? "Повторить"
+                          : task.status === "in-progress"
+                            ? "Продолжить"
+                            : "Начать"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
               })}
             </div>
           )}

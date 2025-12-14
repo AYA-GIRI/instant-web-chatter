@@ -19,8 +19,8 @@ serve(async (req) => {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey)
-    // Using gemini-2.0-flash as confirmed by user's available model list.
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    // Using gemini-2.5-flash - stable version with 1M input tokens and 65K output tokens
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     // Convert messages to Gemini format
     // Gemini expects history + last message. 

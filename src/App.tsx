@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Methods from "./pages/Methods";
 import Practicum from "./pages/Practicum";
+import PromptPracticum from "./pages/PromptPracticum";
 import About from "./pages/About";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/AuthCallback";
@@ -14,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import { FloatingChat } from "@/components/FloatingChat";
 import { CustomCursor } from "@/components/CustomCursor";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ChatProvider } from "@/contexts/ChatContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -21,10 +23,11 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter
+      <ChatProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter
           future={{
             v7_startTransition: true,
             v7_relativeSplatPath: true,
@@ -66,6 +69,14 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/practicum/prompts"
+              element={
+                <ProtectedRoute>
+                  <PromptPracticum />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/about" element={<About />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
@@ -73,7 +84,8 @@ const App = () => (
           <CustomCursor />
           <FloatingChat />
         </BrowserRouter>
-      </TooltipProvider>
+        </TooltipProvider>
+      </ChatProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

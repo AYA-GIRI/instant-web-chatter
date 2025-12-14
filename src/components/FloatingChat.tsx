@@ -1,22 +1,32 @@
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Sparkles, X, Send, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { streamChat } from "@/utils/chatStream";
 import { useToast } from "@/hooks/use-toast";
-
-type Message = { role: "user" | "assistant"; content: string };
+import { useChat } from "@/contexts/ChatContext";
 
 export const FloatingChat = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  // Используем глобальный контекст чата
+  const {
+    isOpen,
+    isMinimized,
+    messages,
+    pendingMessage,
+    openChat,
+    closeChat,
+    toggleMinimize,
+    setMessages,
+    clearPendingMessage,
+  } = useChat();
+
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Прокрутка к последнему сообщению
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -25,10 +35,29 @@ export const FloatingChat = () => {
     scrollToBottom();
   }, [messages, isLoading]);
 
+  // Обработка pending сообщения из контекста
+  useEffect(() => {
+    if (pendingMessage && isOpen && !isMinimized) {
+      setInput(pendingMessage);
+      clearPendingMessage();
+      // Небольшая задержка для анимации открытия чата
+      setTimeout(() => {
+        handleSendWithMessage(pendingMessage);
+      }, 300);
+    }
+  }, [pendingMessage, isOpen, isMinimized]);
+
+  // Отправка сообщения
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+    await handleSendWithMessage(input);
+  };
 
-    const userMessage = input;
+  // Отправка конкретного сообщения
+  const handleSendWithMessage = async (messageText: string) => {
+    if (!messageText.trim() || isLoading) return;
+
+    const userMessage = messageText;
     setInput("");
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
     setIsLoading(true);
@@ -68,6 +97,7 @@ export const FloatingChat = () => {
     }
   };
 
+  // Обработка Enter для отправки
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -80,10 +110,7 @@ export const FloatingChat = () => {
       {/* Floating Button */}
       {!isOpen && (
         <button
-          onClick={() => {
-            setIsOpen(true);
-            setIsMinimized(false);
-          }}
+          onClick={openChat}
           className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-accent shadow-lg hover:bg-accent/90 transition-all hover:scale-110 flex items-center justify-center z-50 animate-pulse-glow"
           aria-label="Открыть AI-ассистента"
         >
@@ -112,16 +139,14 @@ export const FloatingChat = () => {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => {
-                    setIsMinimized(!isMinimized);
-                  }}
+                  onClick={toggleMinimize}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                   aria-label={isMinimized ? "Развернуть" : "Свернуть"}
                 >
                   <Minimize2 className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => setIsOpen(false)}
+                  onClick={closeChat}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                   aria-label="Закрыть"
                 >
@@ -138,7 +163,7 @@ export const FloatingChat = () => {
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center space-y-2">
                         <p className="text-sm text-muted-foreground">
-                          Здравствуйте! 👋
+                          Здравствуйте!
                         </p>
                         <p className="text-xs text-muted-foreground">
                           Я ваш AI-ассистент. Задайте свой вопрос, и я помогу вам
@@ -211,4 +236,3 @@ export const FloatingChat = () => {
     </>
   );
 };
-

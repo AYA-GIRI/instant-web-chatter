@@ -1,56 +1,86 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Clock, TrendingUp, BookOpen, Code, Zap, Target, Sparkles, Circle } from "lucide-react";
+import { MessageSquare, Code, Brain, Lock, Target, Clock, ArrowRight } from "lucide-react";
 
-type Task = {
+// Типы для практикумов
+type PracticumItem = {
   id: string;
   title: string;
   description: string;
+  icon: typeof MessageSquare;
   difficulty: "easy" | "medium" | "hard";
-  category: "python" | "ml" | "data" | "ai";
   duration: string;
-  status: "completed" | "in-progress" | "todo";
-  tags: string[];
+  tasksCount: number;
+  isAvailable: boolean;
+  href?: string;
+  comingSoon?: string;
 };
 
-const tasks: Task[] = [];
+// Список практикумов
+const practicums: PracticumItem[] = [
+  {
+    id: "prompts",
+    title: "Написание промптов",
+    description: "Научитесь создавать эффективные промпты для ChatGPT и других LLM. Освойте техники few-shot learning, chain-of-thought и структурирования запросов.",
+    icon: MessageSquare,
+    difficulty: "easy",
+    duration: "30 мин",
+    tasksCount: 4,
+    isAvailable: true,
+    href: "/practicum/prompts",
+  },
+  {
+    id: "python-ai",
+    title: "Python для работы с AI API",
+    description: "Изучите работу с OpenAI API, создание чат-ботов и интеграцию AI в Python-приложения. Практика работы с библиотеками requests и openai.",
+    icon: Code,
+    difficulty: "medium",
+    duration: "1 час",
+    tasksCount: 6,
+    isAvailable: false,
+    comingSoon: "Январь 2025",
+  },
+  {
+    id: "agents",
+    title: "Мультиагентные системы",
+    description: "Погрузитесь в создание AI-агентов, оркестрацию задач и построение сложных workflow с использованием LangChain и AutoGPT.",
+    icon: Brain,
+    difficulty: "hard",
+    duration: "2 часа",
+    tasksCount: 8,
+    isAvailable: false,
+    comingSoon: "Февраль 2025",
+  },
+];
 
 const Practicum = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-
-  const filteredTasks = tasks.filter((task) => {
-    const matchesCategory = selectedCategory === "all" || task.category === selectedCategory;
-    const matchesDifficulty = selectedDifficulty === "all" || task.difficulty === selectedDifficulty;
-    const matchesStatus = selectedStatus === "all" || task.status === selectedStatus;
-    return matchesCategory && matchesDifficulty && matchesStatus;
-  });
-
+  // Цвета для уровней сложности
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "easy":
-        return "bg-success text-success-foreground";
+        return "bg-green-500/10 text-green-600 border-green-500/30";
       case "medium":
-        return "bg-primary text-primary-foreground";
+        return "bg-yellow-500/10 text-yellow-600 border-yellow-500/30";
       case "hard":
-        return "bg-accent text-accent-foreground";
+        return "bg-red-500/10 text-red-600 border-red-500/30";
       default:
         return "bg-muted text-muted-foreground";
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle2 className="h-5 w-5 text-success" />;
-      case "in-progress":
-        return <Clock className="h-5 w-5 text-primary" />;
+  const getDifficultyLabel = (difficulty: string) => {
+    switch (difficulty) {
+      case "easy":
+        return "Начальный";
+      case "medium":
+        return "Средний";
+      case "hard":
+        return "Продвинутый";
       default:
-        return <Circle className="h-5 w-5 text-muted-foreground" />;
+        return difficulty;
     }
   };
 
@@ -69,156 +99,108 @@ const Practicum = () => {
               Практикум
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-sans">
-              Практические задания и задачи для развития навыков в области AI и машинного обучения
+              Практические задания для развития навыков работы с AI и машинным обучением
             </p>
-          </div>
-
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-2 border border-border rounded-lg bg-card text-foreground"
-            >
-              <option value="all">Все категории</option>
-              <option value="python">Python</option>
-              <option value="data">Data Science</option>
-              <option value="ml">Machine Learning</option>
-              <option value="ai">AI</option>
-            </select>
-
-            <select
-              value={selectedDifficulty}
-              onChange={(e) => setSelectedDifficulty(e.target.value)}
-              className="px-4 py-2 border border-border rounded-lg bg-card text-foreground"
-            >
-              <option value="all">Все уровни</option>
-              <option value="easy">Легкий</option>
-              <option value="medium">Средний</option>
-              <option value="hard">Сложный</option>
-            </select>
-
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-4 py-2 border border-border rounded-lg bg-card text-foreground"
-            >
-              <option value="all">Все статусы</option>
-              <option value="todo">К выполнению</option>
-              <option value="in-progress">В процессе</option>
-              <option value="completed">Завершено</option>
-            </select>
           </div>
         </div>
       </section>
 
-      {/* Tasks Grid */}
+      {/* Practicums Grid */}
       <section className="pb-12 px-4">
         <div className="container mx-auto max-w-6xl">
-          {filteredTasks.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="inline-flex h-16 w-16 rounded-2xl bg-secondary items-center justify-center mb-6">
-                <BookOpen className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-2xl font-bold text-foreground mb-2">
-                Задания появятся здесь
-              </h3>
-              <p className="text-muted-foreground">
-                Практические задания будут добавлены в ближайшее время
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredTasks.map((task) => {
-                const DifficultyIcon =
-                  task.difficulty === "easy"
-                    ? CheckCircle2
-                    : task.difficulty === "medium"
-                      ? TrendingUp
-                      : Zap;
-                const CategoryIcon =
-                  task.category === "python"
-                    ? Code
-                    : task.category === "data"
-                      ? TrendingUp
-                      : task.category === "ml"
-                        ? Target
-                        : Sparkles;
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {practicums.map((practicum) => {
+              const Icon = practicum.icon;
 
-                return (
-                  <Card
-                    key={task.id}
-                    className="glass-panel hover:border-primary transition-all hover:shadow-lg border-white/40"
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`h-12 w-12 rounded-lg flex items-center justify-center ${task.category === "python"
-                              ? "bg-blue-500/10"
-                              : task.category === "data"
-                                ? "bg-green-500/10"
-                                : task.category === "ml"
-                                  ? "bg-purple-500/10"
-                                  : "bg-primary/10"
-                              }`}
-                          >
-                            <CategoryIcon
-                              className={`h-6 w-6 ${task.category === "python"
-                                ? "text-blue-500"
-                                : task.category === "data"
-                                  ? "text-green-500"
-                                  : task.category === "ml"
-                                    ? "text-purple-500"
-                                    : "text-primary"
-                                }`}
-                            />
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg">{task.title}</CardTitle>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-muted-foreground">
-                                {task.duration}
-                              </span>
-                              <Badge className={getDifficultyColor(task.difficulty)}>
-                                {task.difficulty === "easy"
-                                  ? "Легко"
-                                  : task.difficulty === "medium"
-                                    ? "Средне"
-                                    : "Сложно"}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                        {getStatusIcon(task.status)}
+              return (
+                <Card
+                  key={practicum.id}
+                  className={`glass-panel transition-all border-white/40 ${
+                    practicum.isAvailable
+                      ? "hover:border-primary hover:shadow-lg cursor-pointer"
+                      : "opacity-75"
+                  }`}
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between mb-4">
+                      <div
+                        className={`h-14 w-14 rounded-xl flex items-center justify-center ${
+                          practicum.isAvailable
+                            ? "bg-primary/10"
+                            : "bg-muted"
+                        }`}
+                      >
+                        {practicum.isAvailable ? (
+                          <Icon className="h-7 w-7 text-primary" />
+                        ) : (
+                          <Lock className="h-6 w-6 text-muted-foreground" />
+                        )}
                       </div>
-                      <CardDescription>{task.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {task.tags.map((tag, idx) => (
-                          <Badge
-                            key={idx}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {tag}
-                          </Badge>
-                        ))}
+                      {!practicum.isAvailable && practicum.comingSoon && (
+                        <Badge variant="secondary" className="text-xs">
+                          {practicum.comingSoon}
+                        </Badge>
+                      )}
+                    </div>
+                    <CardTitle className="text-xl font-heading">
+                      {practicum.title}
+                    </CardTitle>
+                    <CardDescription className="text-sm mt-2">
+                      {practicum.description}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Метаданные */}
+                      <div className="flex flex-wrap gap-2">
+                        <Badge className={getDifficultyColor(practicum.difficulty)}>
+                          {getDifficultyLabel(practicum.difficulty)}
+                        </Badge>
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {practicum.duration}
+                        </Badge>
+                        <Badge variant="outline">
+                          {practicum.tasksCount} заданий
+                        </Badge>
                       </div>
-                      <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-                        {task.status === "completed"
-                          ? "Повторить"
-                          : task.status === "in-progress"
-                            ? "Продолжить"
-                            : "Начать"}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+
+                      {/* Кнопка действия */}
+                      {practicum.isAvailable ? (
+                        <Link to={practicum.href || "#"}>
+                          <Button className="w-full bg-primary hover:bg-primary/90">
+                            Начать практикум
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Button
+                          className="w-full"
+                          variant="secondary"
+                          disabled
+                        >
+                          <Lock className="mr-2 h-4 w-4" />
+                          Скоро
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Информационный блок */}
+          <div className="mt-12 text-center">
+            <Card className="glass-panel border-white/40 inline-block max-w-2xl">
+              <CardContent className="py-6">
+                <p className="text-muted-foreground">
+                  Практикумы разрабатываются совместно с экспертами Texel и включают
+                  реальные задачи из проектов компании. Новые модули добавляются регулярно.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
     </div>
@@ -226,4 +208,3 @@ const Practicum = () => {
 };
 
 export default Practicum;
-

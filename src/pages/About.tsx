@@ -73,76 +73,150 @@ const About = () => {
             })}
           </div>
 
-          {/* Main Content */}
-          <div className="grid md:grid-cols-2 gap-12 items-center mb-16">
+          {/* Relevance & Problematics */}
+          <div className="grid md:grid-cols-2 gap-12 items-start mb-16">
             <div className="space-y-6">
               <h2 className="text-3xl font-bold text-foreground font-heading">
-                О программе стажировки
+                Актуальность
               </h2>
-              <p className="text-lg text-foreground font-sans">
-                <strong>Internium</strong> — это инновационная платформа для стажировки студентов и молодых специалистов
-                в центре разработки AI-инноваций Texel. Мы создаём новое поколение профессионалов, владеющих
-                передовыми AI-технологиями (ChatGPT, DeepSeek) и способных применять их для решения сложных бизнес-задач.
-              </p>
-              <p className="text-lg text-foreground font-sans">
-                Программа сочетает практическое обучение с реальными проектами компании, менторские сессии
-                и возможность запуска собственных AI-стартапов. Длительность программы — 1 учебный год.
-              </p>
+              <ul className="space-y-4 text-lg text-foreground font-sans list-disc pl-5">
+                <li>Стремительное развитие технологий ИИ создает высокий спрос на специалистов, умеющих эффективно работать с инструментами искусственного интеллекта.</li>
+                <li>Компании и стартапы ищут сотрудников, которые могут использовать ИИ как усилитель производительности и инноваций.</li>
+                <li>Texel предлагает уникальное сочетание экспертизы в области компьютерного зрения, 3D-моделирования и ИИ.</li>
+                <li>Модель обучения, основанная на работе с реальными проектами под руководством опытных наставников, доказала свою эффективность.</li>
+              </ul>
             </div>
 
-            <Card className="bg-primary p-8 border-0">
-              <CardHeader>
-                <CardTitle className="text-2xl text-primary-foreground mb-4 font-heading">
-                  Структура программы
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 text-primary-foreground font-sans">
-                  <li className="flex items-start gap-3">
-                    <span className="text-accent text-2xl">•</span>
-                    <span><strong>Неделя 1-12:</strong> Интенсив по ChatGPT, DeepSeek и основам мультиагентных систем</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-accent text-2xl">•</span>
-                    <span><strong>Неделя 13-26:</strong> Участие в реальных проектах Texel, решение бизнес-задач</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-accent text-2xl">•</span>
-                    <span><strong>Неделя 27-39:</strong> Разработка собственных AI-стартапов под руководством менторов</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="text-accent text-2xl">•</span>
-                    <span><strong>Неделя 40-52:</strong> Демо-дни, презентация проектов инвесторам, трудоустройство</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <h2 className="text-3xl font-bold text-foreground font-heading">
+                Проблематика
+              </h2>
+              <ul className="space-y-4 text-lg text-muted-foreground font-sans list-disc pl-5">
+                <li>Студенты часто не могут применить теоретические знания на практике из-за отсутствия реальных проектов.</li>
+                <li>Традиционные образовательные программы не успевают за развитием технологий ИИ (ChatGPT, DeepSeek).</li>
+                <li>Начинающим предпринимателям не хватает поддержки и ресурсов для развития ИИ-проектов.</li>
+                <li>Навыки работы с ИИ крайне востребованы, но качественное обучение часто недоступно или фрагментировано.</li>
+              </ul>
+            </div>
           </div>
 
-          {/* Achievements */}
+          {/* Goals */}
           <div className="mb-16">
             <h2 className="text-3xl font-bold text-foreground text-center mb-12 font-heading">
-              Ключевые направления программы
+              Цели программы
             </h2>
             <div className="grid md:grid-cols-2 gap-6">
-              {achievements.map((achievement, index) => {
-                const Icon = achievement.icon;
-                return (
-                  <Card key={index} className="glass-panel hover:border-primary transition-all border-white/40">
-                    <CardHeader>
-                      <div className="inline-flex h-12 w-12 rounded-lg bg-primary/10 items-center justify-center mb-4">
-                        <Icon className="h-6 w-6 text-primary" />
-                      </div>
-                      <CardTitle className="text-xl font-heading">{achievement.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <CardDescription className="text-base font-sans">
-                        {achievement.description}
-                      </CardDescription>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              <Card className="glass-panel border-white/40">
+                <CardHeader>
+                  <div className="inline-flex h-12 w-12 rounded-lg bg-primary/10 items-center justify-center mb-4">
+                    <Target className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle className="text-xl font-heading">Центр разработки</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground font-sans">
+                    Создать центр разработки ИИ-инноваций на базе Texel, где участники получат практический опыт с ChatGPT и DeepSeek.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="glass-panel border-white/40">
+                <CardHeader>
+                  <div className="inline-flex h-12 w-12 rounded-lg bg-primary/10 items-center justify-center mb-4">
+                    <GraduationCap className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle className="text-xl font-heading">Программа стажировки</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground font-sans">
+                    Внедрить структурированную программу, сочетающую обучение и участие в реальных проектах Texel.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="glass-panel border-white/40">
+                <CardHeader>
+                  <div className="inline-flex h-12 w-12 rounded-lg bg-primary/10 items-center justify-center mb-4">
+                    <Sparkles className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle className="text-xl font-heading">Инкубатор стартапов</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground font-sans">
+                    Создать среду, где участники смогут разрабатывать собственные проекты под руководством экспертов.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="glass-panel border-white/40">
+                <CardHeader>
+                  <div className="inline-flex h-12 w-12 rounded-lg bg-primary/10 items-center justify-center mb-4">
+                    <Award className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle className="text-xl font-heading">Углублённый курс</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground font-sans">
+                    Дать возможность пройти курс по ChatGPT и DeepSeek для развития «суперспособностей» в решении сложных задач.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Key Tasks */}
+          <div className="mb-16">
+            <h2 className="text-3xl font-bold text-foreground text-center mb-12 font-heading">
+              Ключевые задачи
+            </h2>
+            <div className="space-y-8">
+              <div className="bg-card/50 p-6 rounded-xl border border-border/50">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Users className="text-primary" /> 1. Организация и запуск центра</h3>
+                <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                  <li>Разработка программы стажировки с четкими целями и критериями оценки.</li>
+                  <li>Создание среды для сотрудничества между стажерами и экспертами Texel.</li>
+                  <li>Разработка учебных материалов по продвинутым техникам ИИ.</li>
+                </ul>
+              </div>
+              <div className="bg-card/50 p-6 rounded-xl border border-border/50">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><GraduationCap className="text-primary" /> 2. Реализация учебной программы</h3>
+                <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                  <li>Еженедельные мастер-классы и практические сессии по ИИ.</li>
+                  <li>Менторские сессии с экспертами для обсуждения проектов и обратной связи.</li>
+                </ul>
+              </div>
+              <div className="bg-card/50 p-6 rounded-xl border border-border/50">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><TrendingUp className="text-primary" /> 3. Практическая работа над проектами</h3>
+                <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                  <li>Интеграция стажеров в рабочие процессы Texel (маркетинг, разработка, исследования).</li>
+                  <li>Реализация собственных проектов участников с поддержкой экспертов.</li>
+                </ul>
+              </div>
+              <div className="bg-card/50 p-6 rounded-xl border border-border/50">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2"><Award className="text-primary" /> 4. Демонстрация результатов и трудоустройство</h3>
+                <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                  <li>Проведение демо-дней перед руководством и инвесторами.</li>
+                  <li>Содействие в трудоустройстве лучших участников в Texel или партнерские компании.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Expected Results */}
+          <div className="mb-16 bg-primary/5 p-8 rounded-2xl border border-primary/10">
+            <h2 className="text-3xl font-bold text-foreground text-center mb-8 font-heading">
+              Ожидаемый продуктовый результат
+            </h2>
+            <div className="grid md:grid-cols-3 gap-8 text-center">
+              <div>
+                <div className="text-4xl mb-4">🏢</div>
+                <p className="text-lg font-medium">Действующий центр разработки ИИ-инноваций с регулярными наборами.</p>
+              </div>
+              <div>
+                <div className="text-4xl mb-4">💼</div>
+                <p className="text-lg font-medium">База успешных кейсов и проектов, реализованных стажерами.</p>
+              </div>
+              <div>
+                <div className="text-4xl mb-4">🚀</div>
+                <p className="text-lg font-medium">Инкубационная программа для ИИ-стартапов с доступом к технологиям.</p>
+              </div>
             </div>
           </div>
 

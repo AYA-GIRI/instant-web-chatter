@@ -1,17 +1,88 @@
 type Message = { role: "user" | "assistant"; content: string };
 
+// Режимы работы AI Mentor
+export type MentorMode = "verify" | "discuss" | "explain" | "debug" | "general";
+
+// Контекст для AI Mentor
+export type MentorContext = {
+  mode?: MentorMode;
+  taskTitle?: string;
+  taskDescription?: string;
+  taskDifficulty?: "easy" | "medium" | "hard";
+  userAnswer?: string;
+  successCriteria?: string[];
+  previousFeedback?: string;
+};
+
+// Формирует строку контекста из объекта
+function buildContextString(context: MentorContext): string {
+  const parts: string[] = [];
+  
+  if (context.taskTitle) {
+    parts.push(`Задание: ${context.taskTitle}`);
+  }
+  
+  if (context.taskDescription) {
+    parts.push(`Описание задания: ${context.taskDescription}`);
+  }
+  
+  if (context.taskDifficulty) {
+    const difficultyLabels = {
+      easy: "Начальный (будь более снисходительным)",
+      medium: "Средний",
+      hard: "Продвинутый (требуй полного владения техникой)"
+    };
+    parts.push(`Уровень сложности: ${difficultyLabels[context.taskDifficulty]}`);
+  }
+  
+  if (context.userAnswer) {
+    parts.push(`Ответ студента:\n${context.userAnswer}`);
+  }
+  
+  if (context.successCriteria && context.successCriteria.length > 0) {
+    parts.push(`Критерии успеха:\n- ${context.successCriteria.join('\n- ')}`);
+  }
+  
+  if (context.previousFeedback) {
+    parts.push(`Предыдущая обратная связь:\n${context.previousFeedback}`);
+  }
+  
+  return parts.join('\n\n');
+}
+
 export async function streamChat({
   messages,
+  context,
   onDelta,
   onDone,
   onError,
 }: {
   messages: Message[];
+  context?: MentorContext;
   onDelta: (deltaText: string) => void;
   onDone: () => void;
   onError: (error: Error) => void;
 }) {
   const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+
+  // Подготавливаем данные для API
+  const requestBody: {
+    messages: Message[];
+    context?: string;
+    mode?: MentorMode;
+  } = { messages };
+
+  // Добавляем контекст и режим если переданы
+  if (context) {
+    if (context.mode) {
+      requestBody.mode = context.mode;
+    }
+    
+    const contextString = buildContextString(context);
+    if (contextString) {
+      requestBody.context = contextString;
+    }
+  }
 
   try {
     const resp = await fetch(CHAT_URL, {
@@ -20,7 +91,7 @@ export async function streamChat({
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!resp.ok) {
@@ -79,7 +150,9 @@ export async function streamChat({
           const parsed = JSON.parse(jsonStr);
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) onDelta(content);
-        } catch {}
+        } catch {
+          // Ignore parse errors for remaining buffer
+        }
       }
     }
 

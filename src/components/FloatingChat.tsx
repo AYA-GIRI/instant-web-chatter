@@ -3,7 +3,7 @@ import { Sparkles, X, Send, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { streamChat } from "@/utils/chatStream";
+import { streamChat, type MentorContext } from "@/utils/chatStream";
 import { useToast } from "@/hooks/use-toast";
 import { useChat } from "@/contexts/ChatContext";
 
@@ -77,8 +77,14 @@ export const FloatingChat = () => {
     };
 
     try {
+      // Общий режим для плавающего чата - AI Mentor без специфического контекста задания
+      const generalContext: MentorContext = {
+        mode: "general",
+      };
+
       await streamChat({
         messages: [...messages, { role: "user", content: userMessage }],
+        context: generalContext,
         onDelta: (chunk) => upsertAssistant(chunk),
         onDone: () => setIsLoading(false),
         onError: (error) => {
@@ -130,10 +136,10 @@ export const FloatingChat = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground text-sm">
-                    AI-ассистент
+                    AI Mentor
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Всегда готов помочь и ответить на вопросы
+                    Наставник по AI и промпт-инжинирингу
                   </p>
                 </div>
               </div>
@@ -161,13 +167,17 @@ export const FloatingChat = () => {
                 <div className="h-96 overflow-y-auto p-4 space-y-4 bg-transparent">
                   {messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <div className="text-center space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          Здравствуйте!
+                      <div className="text-center space-y-3 px-4">
+                        <p className="text-sm font-medium text-foreground">
+                          Привет! Я AI Mentor
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Я ваш AI-ассистент. Задайте свой вопрос, и я помогу вам
+                          Помогу разобраться с концепциями AI и промпт-инжиниринга.
+                          Задавай вопросы - я направлю тебя к решению!
                         </p>
+                        <div className="text-xs text-muted-foreground/70 pt-2 border-t border-border">
+                          Я не даю готовых ответов, но помогу найти их самостоятельно
+                        </div>
                       </div>
                     </div>
                   ) : (

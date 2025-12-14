@@ -26,7 +26,7 @@ import {
   Send,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { streamChat } from "@/utils/chatStream";
+import { streamChat, type MentorContext } from "@/utils/chatStream";
 
 // Тип сообщения в диалоге обсуждения
 type DialogMessage = {
@@ -182,40 +182,31 @@ const PromptPracticum = () => {
     setVerificationResult(null);
     setShowResultDialog(true);
 
-    // Формируем системный промпт для проверки
-    const verificationPrompt = `Ты - эксперт по промпт-инжинирингу. Проверь ответ студента на задание практикума.
-
-ЗАДАНИЕ: ${currentTask.title}
-ОПИСАНИЕ: ${currentTask.description}
-УРОВЕНЬ СЛОЖНОСТИ: ${currentTask.difficulty === 'easy' ? 'Начальный' : currentTask.difficulty === 'medium' ? 'Средний' : 'Продвинутый'}
-
-ОТВЕТ СТУДЕНТА:
-${userPrompt}
-
-КРИТЕРИИ ОЦЕНКИ:
-1. Промпт должен соответствовать заданию
-2. Промпт должен быть чётким и понятным
-3. Промпт должен использовать технику, указанную в задании
-4. Для начального уровня - достаточно базового соответствия
-5. Для среднего уровня - нужна структура и контекст
-6. Для продвинутого уровня - нужно полное владение техникой
-
-ИНСТРУКЦИИ:
-1. Кратко проанализируй промпт (2-3 предложения)
-2. Укажи что хорошо (1-2 пункта)
-3. Укажи что можно улучшить (1-2 пункта, если есть)
-4. В конце ОБЯЗАТЕЛЬНО напиши вердикт в формате:
-
-Если промпт соответствует заданию: [ЗАЧТЕНО]
-Если промпт НЕ соответствует заданию: [НЕ ЗАЧТЕНО]
-
-Будь доброжелательным, но объективным. Для начального уровня будь более снисходительным.`;
+    // Формируем контекст для AI Mentor
+    const mentorContext: MentorContext = {
+      mode: "verify",
+      taskTitle: currentTask.title,
+      taskDescription: currentTask.description,
+      taskDifficulty: currentTask.difficulty,
+      userAnswer: userPrompt,
+      successCriteria: [
+        "Промпт соответствует заданию",
+        "Промпт четкий и понятный",
+        "Используется требуемая техника",
+        currentTask.difficulty === "easy" 
+          ? "Для начального уровня достаточно базового соответствия"
+          : currentTask.difficulty === "medium"
+          ? "Для среднего уровня нужна структура и контекст"
+          : "Для продвинутого уровня нужно полное владение техникой"
+      ],
+    };
 
     let fullResponse = "";
 
     try {
       await streamChat({
-        messages: [{ role: "user", content: verificationPrompt }],
+        messages: [{ role: "user", content: "Проверь мой промпт на соответствие заданию и критериям." }],
+        context: mentorContext,
         onDelta: (chunk) => {
           fullResponse += chunk;
           setAiResponse(fullResponse);
@@ -309,24 +300,22 @@ ${aiResponse}
     let assistantContent = "";
 
     try {
-      // Формируем системный контекст
-      const systemContext = `Ты - эксперт по промпт-инжинирингу. Ты помогаешь студенту разобраться с заданием практикума.
+      // Формируем контекст для режима обсуждения
+      const discussContext: MentorContext = {
+        mode: "discuss",
+        taskTitle: currentTask.title,
+        taskDescription: currentTask.description,
+        taskDifficulty: currentTask.difficulty,
+        userAnswer: userPrompt,
+        previousFeedback: aiResponse,
+      };
 
-Контекст:
-- Задание: ${currentTask.title}
-- Описание: ${currentTask.description}
-- Ответ студента: ${userPrompt}
-- Результат проверки: ${verificationResult?.passed ? "Зачтено" : "Не зачтено"}
-
-Отвечай кратко и по делу. Помогай улучшить понимание промпт-инжиниринга.`;
-
-      const messagesForApi = [
-        { role: "user" as const, content: systemContext },
-        ...newMessages.map(m => ({ role: m.role, content: m.content })),
-      ];
+      // Формируем сообщения для API (без системного промпта - он теперь на бэкенде)
+      const messagesForApi = newMessages.map(m => ({ role: m.role, content: m.content }));
 
       await streamChat({
         messages: messagesForApi,
+        context: discussContext,
         onDelta: (chunk) => {
           assistantContent += chunk;
           setDiscussionMessages([

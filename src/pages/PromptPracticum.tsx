@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { streamChat, type MentorContext } from "@/utils/chatStream";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 // Тип сообщения в диалоге обсуждения
 type DialogMessage = {
@@ -50,6 +52,9 @@ type VerificationResult = {
   feedback: string;
   suggestions: string[];
 };
+
+// Идентификатор практикума для сохранения прогресса в БД
+const PRACTICUM_ID = "prompt_practicum";
 
 // Задания практикума по промптам
 const promptTasks: PromptTask[] = [
@@ -89,11 +94,15 @@ const promptTasks: PromptTask[] = [
 
 const PromptPracticum = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [userPrompts, setUserPrompts] = useState<Record<string, string>>({});
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
   const [showHint, setShowHint] = useState(false);
   const [copiedExample, setCopiedExample] = useState(false);
+  
+  // Состояние загрузки прогресса
+  const [isLoadingProgress, setIsLoadingProgress] = useState(true);
   
   // Состояния для проверки
   const [isVerifying, setIsVerifying] = useState(false);
@@ -109,6 +118,134 @@ const PromptPracticum = () => {
   const discussionEndRef = useRef<HTMLDivElement>(null);
 
   const currentTask = promptTasks[currentTaskIndex];
+
+  // Загрузка прогресса пользователя из БД
+  const loadProgress = useCallback(async () => {
+    if (!user) {
+      setIsLoadingProgress(false);
+      return;
+    }
+
+    try {
+      console.log("[PromptPracticum] Загрузка прогресса для user_id:", user.id);
+      
+      // Загружаем все записи прогресса для данного практикума
+      const { data, error } = await supabase
+        .from("user_progress")
+        .select("task_id, completed, notes")
+        .eq("user_id", user.id)
+        .like("task_id", `${PRACTICUM_ID}_%`);
+
+      if (error) {
+        console.error("[PromptPracticum] Supabase error:", {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        });
+        throw error;
+      }
+      
+      console.log("[PromptPracticum] Загружено записей:", data?.length ?? 0);
+
+      if (data && data.length > 0) {
+        const prompts: Record<string, string> = {};
+        const completed = new Set<string>();
+
+        data.forEach((record) => {
+          // Извлекаем ID задания из task_id (формат: prompt_practicum_1)
+          const taskId = record.task_id.replace(`${PRACTICUM_ID}_`, "");
+          
+          // Восстанавливаем ответ пользователя из notes
+          if (record.notes) {
+            prompts[taskId] = record.notes;
+          }
+          
+          // Восстанавливаем статус выполнения
+          if (record.completed) {
+            completed.add(taskId);
+          }
+        });
+
+        setUserPrompts(prompts);
+        setCompletedTasks(completed);
+      }
+    } catch (error: unknown) {
+      // Детальное логирование для отладки
+      const err = error as { message?: string; code?: string; details?: string; hint?: string };
+      console.error("[PromptPracticum] Полная ошибка загрузки:", error);
+      console.error("[PromptPracticum] Детали:", {
+        message: err?.message,
+        code: err?.code,
+        details: err?.details,
+        hint: err?.hint,
+      });
+      
+      toast({
+        title: "Ошибка загрузки",
+        description: err?.message || "Не удалось загрузить ваш прогресс",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingProgress(false);
+    }
+  }, [user, toast]);
+
+  // Сохранение прогресса в БД
+  const saveProgress = useCallback(async (taskId: string, prompt: string, completed: boolean) => {
+    if (!user) return;
+
+    const fullTaskId = `${PRACTICUM_ID}_${taskId}`;
+    
+    console.log("[PromptPracticum] Сохранение прогресса:", {
+      user_id: user.id,
+      task_id: fullTaskId,
+      completed,
+      notes_length: prompt.length,
+    });
+
+    try {
+      // Используем upsert для создания или обновления записи
+      const { data, error } = await supabase
+        .from("user_progress")
+        .upsert(
+          {
+            user_id: user.id,
+            task_id: fullTaskId,
+            notes: prompt,
+            completed: completed,
+          },
+          {
+            onConflict: "user_id,task_id",
+          }
+        )
+        .select();
+
+      if (error) {
+        console.error("[PromptPracticum] Ошибка сохранения:", {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        });
+        throw error;
+      }
+      
+      console.log("[PromptPracticum] Прогресс сохранён:", data);
+    } catch (error) {
+      console.error("Ошибка сохранения прогресса:", error);
+      toast({
+        title: "Ошибка сохранения",
+        description: "Не удалось сохранить прогресс",
+        variant: "destructive",
+      });
+    }
+  }, [user, toast]);
+
+  // Загрузка прогресса при монтировании компонента
+  useEffect(() => {
+    loadProgress();
+  }, [loadProgress]);
   
   // Прокрутка к последнему сообщению в обсуждении
   useEffect(() => {
@@ -217,8 +354,9 @@ const PromptPracticum = () => {
           setVerificationResult(result);
           
           if (result.passed) {
-            // Задание зачтено
+            // Задание зачтено - обновляем локальное состояние и сохраняем в БД
             setCompletedTasks((prev) => new Set([...prev, currentTask.id]));
+            saveProgress(currentTask.id, userPrompt, true);
           }
         },
         onError: (error) => {
@@ -384,12 +522,42 @@ ${aiResponse}
     }
   };
 
+  // Показываем индикатор загрузки, пока прогресс загружается
+  if (isLoadingProgress) {
+    return (
+      <div className="min-h-screen bg-transparent">
+        <Navigation />
+        <section className="pt-24 pb-12 px-4">
+          <div className="container mx-auto max-w-4xl flex items-center justify-center min-h-[50vh]">
+            <div className="text-center space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+              <p className="text-muted-foreground">Загрузка прогресса...</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-transparent">
       <Navigation />
 
       <section className="pt-24 pb-12 px-4">
         <div className="container mx-auto max-w-4xl">
+          {/* Уведомление для неавторизованных пользователей */}
+          {!user && (
+            <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                Вы не авторизованы. Ваш прогресс не будет сохранён.{" "}
+                <Link to="/login" className="underline hover:no-underline font-medium">
+                  Войдите
+                </Link>
+                , чтобы сохранять результаты.
+              </p>
+            </div>
+          )}
+
           {/* Навигация назад */}
           <Link
             to="/practicum"

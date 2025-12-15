@@ -37,16 +37,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Fetch user profile from database
     const fetchProfile = async (userId: string) => {
         try {
+            console.log('[AuthContext] Загрузка профиля для user_id:', userId);
+            
             const { data, error } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                console.error('[AuthContext] Supabase error:', {
+                    message: error.message,
+                    code: error.code,
+                    details: error.details,
+                    hint: error.hint,
+                });
+                throw error;
+            }
+            
+            console.log('[AuthContext] Профиль загружен:', data);
             setProfile(data);
         } catch (error) {
-            console.error('Error fetching profile:', error);
+            const err = error as { message?: string; code?: string; details?: string; hint?: string };
+            console.error('[AuthContext] Полная ошибка:', error);
+            console.error('[AuthContext] Детали:', {
+                message: err?.message,
+                code: err?.code,
+                details: err?.details,
+                hint: err?.hint,
+            });
             setProfile(null);
         }
     };

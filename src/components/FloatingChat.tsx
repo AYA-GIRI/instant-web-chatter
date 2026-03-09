@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { streamChat, type MentorContext } from "@/utils/chatStream";
 import { useToast } from "@/hooks/use-toast";
 import { useChat } from "@/contexts/ChatContext";
+import { useAiProvider } from "@/hooks/useAiProvider";
+import { AiProviderSelect } from "@/components/AiProviderSelect";
 
 export const FloatingChat = () => {
   // Используем глобальный контекст чата
@@ -25,6 +27,7 @@ export const FloatingChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { provider, setProvider } = useAiProvider();
 
   // Прокрутка к последнему сообщению
   const scrollToBottom = () => {
@@ -85,6 +88,7 @@ export const FloatingChat = () => {
       await streamChat({
         messages: [...messages, { role: "user", content: userMessage }],
         context: generalContext,
+        provider,
         onDelta: (chunk) => upsertAssistant(chunk),
         onDone: () => setIsLoading(false),
         onError: (error) => {
@@ -138,9 +142,12 @@ export const FloatingChat = () => {
                   <h3 className="font-semibold text-foreground text-sm">
                     AI Mentor
                   </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Наставник по AI и промпт-инжинирингу
-                  </p>
+                  <AiProviderSelect
+                    value={provider}
+                    onChange={setProvider}
+                    compact
+                    disabled={isLoading}
+                  />
                 </div>
               </div>
               <div className="flex gap-2">

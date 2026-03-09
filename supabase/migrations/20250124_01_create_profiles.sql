@@ -1,11 +1,26 @@
 -- Migration: Create profiles table
 -- Description: User profiles extending auth.users with additional fields
 
+-- ============================================
+-- Helper function for admin checks (avoids RLS recursion)
+-- ============================================
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+
+-- ============================================
 -- Create profiles table
+-- ============================================
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name TEXT,
-  role TEXT DEFAULT 'student' CHECK (role IN ('student', 'admin')),
+  role TEXT DEFAULT 'student' CHECK (role IN ('student', 'employee', 'admin')),
   avatar_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -14,7 +29,9 @@ CREATE TABLE IF NOT EXISTS profiles (
 -- Enable RLS
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
+-- ============================================
 -- RLS Policies
+-- ============================================
 DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 CREATE POLICY "Users can view own profile"
   ON profiles FOR SELECT
@@ -28,12 +45,16 @@ CREATE POLICY "Users can update own profile"
 DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
 CREATE POLICY "Admins can view all profiles"
   ON profiles FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
-    )
-  );
+  USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Admins can update all profiles" ON profiles;
+CREATE POLICY "Admins can update all profiles"
+  ON profiles FOR UPDATE
+  USING (public.is_admin());
+
+-- ============================================
+-- Functions and Triggers
+-- ============================================
 
 -- Function to handle new user creation
 CREATE OR REPLACE FUNCTION public.handle_new_user()

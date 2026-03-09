@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,14 +14,43 @@ import { useToast } from "@/hooks/use-toast";
 const Methods = () => {
   const { methods, loading, error } = useMethods();
   const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [selectedDirection, setSelectedDirection] = useState("all");
+
+  // Sync search query from URL parameter when navigating from practicum glossary links
+  useEffect(() => {
+    const urlSearch = searchParams.get("search");
+    if (urlSearch) {
+      setSearchQuery(urlSearch);
+    }
+  }, [searchParams]);
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedFormat, setSelectedFormat] = useState("all");
 
   const filteredMethods = methods.filter((method) => {
-    const matchesSearch = method.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (method.description && method.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    const query = searchQuery.toLowerCase().trim();
+    let matchesSearch = true;
+    if (query) {
+      const words = query.split(/\s+/).filter(Boolean);
+      const searchableText = [
+        method.title,
+        method.description || "",
+        ...(method.tags || []),
+      ].join(" ").toLowerCase();
+
+      // For each word, check direct substring match.
+      // For words 5+ chars, also try a shortened stem (drop last 2 chars)
+      // to handle basic Russian morphology (e.g. "промпт" -> "промп", "обучение" -> "обучени")
+      matchesSearch = words.some((word) => {
+        if (searchableText.includes(word)) return true;
+        if (word.length >= 5) {
+          const stem = word.slice(0, -2);
+          return searchableText.includes(stem);
+        }
+        return false;
+      });
+    }
     const matchesDirection = selectedDirection === "all" || method.direction === selectedDirection;
     const matchesLevel = selectedLevel === "all" || method.level === selectedLevel;
     const matchesFormat = selectedFormat === "all" || method.format === selectedFormat;

@@ -28,45 +28,43 @@ CREATE INDEX IF NOT EXISTS idx_methods_format ON methods(format);
 -- Enable RLS
 ALTER TABLE methods ENABLE ROW LEVEL SECURITY;
 
+-- ============================================
 -- RLS Policies
+-- ============================================
+
 -- Everyone can view active methods
 DROP POLICY IF EXISTS "Anyone can view active methods" ON methods;
 CREATE POLICY "Anyone can view active methods"
   ON methods FOR SELECT
   USING (is_active = true);
 
+-- Admins can view ALL methods (including inactive)
+DROP POLICY IF EXISTS "Admins can view all methods" ON methods;
+CREATE POLICY "Admins can view all methods"
+  ON methods FOR SELECT
+  USING (public.is_admin());
+
 -- Only admins can insert methods
 DROP POLICY IF EXISTS "Admins can insert methods" ON methods;
 CREATE POLICY "Admins can insert methods"
   ON methods FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
-    )
-  );
+  WITH CHECK (public.is_admin());
 
 -- Only admins can update methods
 DROP POLICY IF EXISTS "Admins can update methods" ON methods;
 CREATE POLICY "Admins can update methods"
   ON methods FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
-    )
-  );
+  USING (public.is_admin());
 
 -- Only admins can delete methods
 DROP POLICY IF EXISTS "Admins can delete methods" ON methods;
 CREATE POLICY "Admins can delete methods"
   ON methods FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
-    )
-  );
+  USING (public.is_admin());
+
+-- ============================================
+-- Functions and Triggers
+-- ============================================
 
 -- Function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION public.handle_methods_updated_at()
@@ -82,4 +80,3 @@ DROP TRIGGER IF EXISTS on_methods_updated ON methods;
 CREATE TRIGGER on_methods_updated
   BEFORE UPDATE ON methods
   FOR EACH ROW EXECUTE FUNCTION public.handle_methods_updated_at();
-

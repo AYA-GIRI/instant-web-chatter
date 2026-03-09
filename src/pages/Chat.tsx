@@ -6,6 +6,8 @@ import { TypingIndicator } from "@/components/TypingIndicator";
 import { streamChat } from "@/utils/chatStream";
 import { useToast } from "@/hooks/use-toast";
 import { Sparkles } from "lucide-react";
+import { useAiProvider } from "@/hooks/useAiProvider";
+import { AiProviderSelect } from "@/components/AiProviderSelect";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -14,6 +16,7 @@ const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { provider, setProvider } = useAiProvider();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -45,6 +48,7 @@ const Chat = () => {
     try {
       await streamChat({
         messages: [...messages, userMsg],
+        provider,
         onDelta: (chunk) => upsertAssistant(chunk),
         onDone: () => setIsLoading(false),
         onError: (error) => {
@@ -79,6 +83,13 @@ const Chat = () => {
               <p className="text-muted-foreground max-w-md">
                 Ask me anything! I'm here to help with questions, ideas, writing, and more.
               </p>
+              <div className="pt-2">
+                <AiProviderSelect
+                  value={provider}
+                  onChange={setProvider}
+                  disabled={isLoading}
+                />
+              </div>
             </div>
           </div>
         ) : (
@@ -93,6 +104,16 @@ const Chat = () => {
 
         {/* Input Area */}
         <div className="sticky bottom-0 pt-4 bg-gradient-to-t from-background via-background to-transparent">
+          {messages.length > 0 && (
+            <div className="flex justify-end mb-2">
+              <AiProviderSelect
+                value={provider}
+                onChange={setProvider}
+                compact
+                disabled={isLoading}
+              />
+            </div>
+          )}
           <ChatInput onSend={sendMessage} disabled={isLoading} />
         </div>
       </main>

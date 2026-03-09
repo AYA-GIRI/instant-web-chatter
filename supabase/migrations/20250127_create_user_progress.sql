@@ -22,7 +22,10 @@ CREATE INDEX IF NOT EXISTS idx_user_progress_completed ON user_progress(complete
 -- Enable RLS
 ALTER TABLE user_progress ENABLE ROW LEVEL SECURITY;
 
+-- ============================================
 -- RLS Policies
+-- ============================================
+
 DROP POLICY IF EXISTS "Users can view own progress" ON user_progress;
 CREATE POLICY "Users can view own progress"
   ON user_progress FOR SELECT
@@ -46,12 +49,11 @@ CREATE POLICY "Users can delete own progress"
 DROP POLICY IF EXISTS "Admins can view all progress" ON user_progress;
 CREATE POLICY "Admins can view all progress"
   ON user_progress FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
-    )
-  );
+  USING (public.is_admin());
+
+-- ============================================
+-- Functions and Triggers
+-- ============================================
 
 -- Function to automatically set completed_at when marking as completed
 CREATE OR REPLACE FUNCTION public.handle_progress_completion()
@@ -66,12 +68,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger to update completed_at and updated_at
+-- Trigger to update completed_at
 DROP TRIGGER IF EXISTS on_progress_updated ON user_progress;
 CREATE TRIGGER on_progress_updated
   BEFORE UPDATE ON user_progress
   FOR EACH ROW EXECUTE FUNCTION public.handle_progress_completion();
 
+-- Trigger to update updated_at
 DROP TRIGGER IF EXISTS on_progress_timestamp_updated ON user_progress;
 CREATE TRIGGER on_progress_timestamp_updated
   BEFORE UPDATE ON user_progress

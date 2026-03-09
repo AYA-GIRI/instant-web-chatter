@@ -6,11 +6,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Methods from "./pages/Methods";
 import Practicum from "./pages/Practicum";
-import PromptPracticum from "./pages/PromptPracticum";
+import PracticumCourse from "./pages/PracticumCourse";
+import PracticumLesson from "./pages/PracticumLesson";
 import About from "./pages/About";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/AuthCallback";
 import Profile from "./pages/Profile";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import { FloatingChat } from "@/components/FloatingChat";
 import { CustomCursor } from "@/components/CustomCursor";
@@ -70,10 +72,26 @@ const App = () => (
               }
             />
             <Route
-              path="/practicum/prompts"
+              path="/practicum/:courseSlug"
               element={
                 <ProtectedRoute>
-                  <PromptPracticum />
+                  <PracticumCourse />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/practicum/:courseSlug/:lessonSlug"
+              element={
+                <ProtectedRoute>
+                  <PracticumLesson />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <Admin />
                 </ProtectedRoute>
               }
             />

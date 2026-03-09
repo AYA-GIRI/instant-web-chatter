@@ -28,6 +28,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { streamChat, type MentorContext } from "@/utils/chatStream";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAiProvider } from "@/hooks/useAiProvider";
+import { AiProviderSelect } from "@/components/AiProviderSelect";
 import { supabase } from "@/integrations/supabase/client";
 
 // Тип сообщения в диалоге обсуждения
@@ -95,6 +97,7 @@ const promptTasks: PromptTask[] = [
 const PromptPracticum = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { provider, setProvider } = useAiProvider();
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
   const [userPrompts, setUserPrompts] = useState<Record<string, string>>({});
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
@@ -344,6 +347,7 @@ const PromptPracticum = () => {
       await streamChat({
         messages: [{ role: "user", content: "Проверь мой промпт на соответствие заданию и критериям." }],
         context: mentorContext,
+        provider,
         onDelta: (chunk) => {
           fullResponse += chunk;
           setAiResponse(fullResponse);
@@ -454,6 +458,7 @@ ${aiResponse}
       await streamChat({
         messages: messagesForApi,
         context: discussContext,
+        provider,
         onDelta: (chunk) => {
           assistantContent += chunk;
           setDiscussionMessages([
@@ -578,6 +583,15 @@ ${aiResponse}
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Научитесь создавать эффективные промпты для ChatGPT и других LLM
             </p>
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <span className="text-sm text-muted-foreground">AI-провайдер:</span>
+              <AiProviderSelect
+                value={provider}
+                onChange={setProvider}
+                compact
+                disabled={isVerifying || isDiscussionLoading}
+              />
+            </div>
           </div>
 
           {/* Прогресс */}

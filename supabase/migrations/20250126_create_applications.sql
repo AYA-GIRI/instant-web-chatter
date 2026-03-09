@@ -17,14 +17,17 @@ CREATE TABLE IF NOT EXISTS applications (
   admin_notes TEXT
 );
 
--- Create index for faster queries
+-- Create indexes for faster queries
 CREATE INDEX IF NOT EXISTS idx_applications_user_id ON applications(user_id);
 CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status);
 
 -- Enable RLS
 ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
 
+-- ============================================
 -- RLS Policies
+-- ============================================
+
 DROP POLICY IF EXISTS "Users can view own applications" ON applications;
 CREATE POLICY "Users can view own applications"
   ON applications FOR SELECT
@@ -43,22 +46,16 @@ CREATE POLICY "Users can update own pending applications"
 DROP POLICY IF EXISTS "Admins can view all applications" ON applications;
 CREATE POLICY "Admins can view all applications"
   ON applications FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
-    )
-  );
+  USING (public.is_admin());
 
 DROP POLICY IF EXISTS "Admins can update all applications" ON applications;
 CREATE POLICY "Admins can update all applications"
   ON applications FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
-    )
-  );
+  USING (public.is_admin());
+
+-- ============================================
+-- Triggers
+-- ============================================
 
 -- Trigger to update updated_at timestamp
 DROP TRIGGER IF EXISTS on_application_updated ON applications;

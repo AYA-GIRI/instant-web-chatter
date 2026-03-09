@@ -3,61 +3,13 @@ import { Navigation } from "@/components/Navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Code, Brain, Lock, Target, Clock, ArrowRight } from "lucide-react";
-
-// Типы для практикумов
-type PracticumItem = {
-  id: string;
-  title: string;
-  description: string;
-  icon: typeof MessageSquare;
-  difficulty: "easy" | "medium" | "hard";
-  duration: string;
-  tasksCount: number;
-  isAvailable: boolean;
-  href?: string;
-  comingSoon?: string;
-};
-
-// Список практикумов
-const practicums: PracticumItem[] = [
-  {
-    id: "prompts",
-    title: "Написание промптов",
-    description: "Научитесь создавать эффективные промпты для ChatGPT и других LLM. Освойте техники few-shot learning, chain-of-thought и структурирования запросов.",
-    icon: MessageSquare,
-    difficulty: "easy",
-    duration: "30 мин",
-    tasksCount: 4,
-    isAvailable: true,
-    href: "/practicum/prompts",
-  },
-  {
-    id: "python-ai",
-    title: "Python для работы с AI API",
-    description: "Изучите работу с OpenAI API, создание чат-ботов и интеграцию AI в Python-приложения. Практика работы с библиотеками requests и openai.",
-    icon: Code,
-    difficulty: "medium",
-    duration: "1 час",
-    tasksCount: 6,
-    isAvailable: false,
-    comingSoon: "Январь 2025",
-  },
-  {
-    id: "agents",
-    title: "Мультиагентные системы",
-    description: "Погрузитесь в создание AI-агентов, оркестрацию задач и построение сложных workflow с использованием LangChain и AutoGPT.",
-    icon: Brain,
-    difficulty: "hard",
-    duration: "2 часа",
-    tasksCount: 8,
-    isAvailable: false,
-    comingSoon: "Февраль 2025",
-  },
-];
+import { Target, Clock, ArrowRight, Loader2 } from "lucide-react";
+import { usePracticumCourses } from "@/hooks/usePracticum";
+import { getIconByName } from "@/utils/methods";
 
 const Practicum = () => {
-  // Цвета для уровней сложности
+  const { courses, loading, error } = usePracticumCourses();
+
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "easy":
@@ -105,92 +57,84 @@ const Practicum = () => {
         </div>
       </section>
 
-      {/* Practicums Grid */}
+      {/* Courses Grid */}
       <section className="pb-12 px-4">
         <div className="container mx-auto max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {practicums.map((practicum) => {
-              const Icon = practicum.icon;
+          {loading && (
+            <div className="text-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
+              <p className="text-muted-foreground text-lg">Загрузка курсов...</p>
+            </div>
+          )}
 
-              return (
-                <Card
-                  key={practicum.id}
-                  className={`glass-panel transition-all border-white/40 ${
-                    practicum.isAvailable
-                      ? "hover:border-primary hover:shadow-lg cursor-pointer"
-                      : "opacity-75"
-                  }`}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between mb-4">
-                      <div
-                        className={`h-14 w-14 rounded-xl flex items-center justify-center ${
-                          practicum.isAvailable
-                            ? "bg-primary/10"
-                            : "bg-muted"
-                        }`}
-                      >
-                        {practicum.isAvailable ? (
-                          <Icon className="h-7 w-7 text-primary" />
-                        ) : (
-                          <Lock className="h-6 w-6 text-muted-foreground" />
-                        )}
-                      </div>
-                      {!practicum.isAvailable && practicum.comingSoon && (
-                        <Badge variant="secondary" className="text-xs">
-                          {practicum.comingSoon}
-                        </Badge>
-                      )}
-                    </div>
-                    <CardTitle className="text-xl font-heading">
-                      {practicum.title}
-                    </CardTitle>
-                    <CardDescription className="text-sm mt-2">
-                      {practicum.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {/* Метаданные */}
-                      <div className="flex flex-wrap gap-2">
-                        <Badge className={getDifficultyColor(practicum.difficulty)}>
-                          {getDifficultyLabel(practicum.difficulty)}
-                        </Badge>
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {practicum.duration}
-                        </Badge>
-                        <Badge variant="outline">
-                          {practicum.tasksCount} заданий
-                        </Badge>
-                      </div>
+          {error && (
+            <div className="text-center py-12">
+              <p className="text-destructive text-lg">Ошибка загрузки: {error.message}</p>
+            </div>
+          )}
 
-                      {/* Кнопка действия */}
-                      {practicum.isAvailable ? (
-                        <Link to={practicum.href || "#"}>
+          {!loading && !error && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+              {courses.map((course) => {
+                const Icon = getIconByName(course.icon_name);
+
+                return (
+                  <Card
+                    key={course.id}
+                    className="glass-panel transition-all border-white/40 hover:border-primary hover:shadow-lg cursor-pointer flex flex-col"
+                  >
+                    <CardHeader className="flex-1">
+                      <div className="flex items-start justify-between mb-4">
+                        <div
+                          className="h-14 w-14 rounded-xl flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: course.color + "20" }}
+                        >
+                          <Icon className="h-7 w-7" style={{ color: course.color }} />
+                        </div>
+                      </div>
+                      <CardTitle className="text-xl font-heading leading-tight break-words min-h-[3.5rem]">
+                        {course.title}
+                      </CardTitle>
+                      <CardDescription className="text-sm mt-2 line-clamp-3 min-h-[3.75rem]">
+                        {course.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                          <Badge className={getDifficultyColor(course.difficulty)}>
+                            {getDifficultyLabel(course.difficulty)}
+                          </Badge>
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {course.estimated_duration}
+                          </Badge>
+                          <Badge variant="outline">
+                            {course.lessons_count} уроков
+                          </Badge>
+                        </div>
+
+                        <Link to={`/practicum/${course.slug}`}>
                           <Button className="w-full bg-primary hover:bg-primary/90">
                             Начать практикум
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </Button>
                         </Link>
-                      ) : (
-                        <Button
-                          className="w-full"
-                          variant="secondary"
-                          disabled
-                        >
-                          <Lock className="mr-2 h-4 w-4" />
-                          Скоро
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
 
-          {/* Информационный блок */}
+          {!loading && !error && courses.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-lg">Пока нет доступных курсов</p>
+            </div>
+          )}
+
+          {/* Info block */}
           <div className="mt-12 text-center">
             <Card className="glass-panel border-white/40 inline-block max-w-2xl">
               <CardContent className="py-6">

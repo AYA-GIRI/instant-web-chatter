@@ -1,5 +1,8 @@
 type Message = { role: "user" | "assistant"; content: string };
 
+// Доступные AI-провайдеры
+export type AiProvider = "gemini" | "openrouter";
+
 // Режимы работы AI Mentor
 export type MentorMode = "verify" | "discuss" | "explain" | "debug" | "general";
 
@@ -50,20 +53,32 @@ function buildContextString(context: MentorContext): string {
   return parts.join('\n\n');
 }
 
+// URL-ы Edge Functions для каждого провайдера
+function getChatUrl(provider: AiProvider): string {
+  const base = import.meta.env.VITE_SUPABASE_URL;
+  if (provider === "openrouter") {
+    return `${base}/functions/v1/chat-openrouter`;
+  }
+  // По умолчанию - Gemini
+  return `${base}/functions/v1/chat`;
+}
+
 export async function streamChat({
   messages,
   context,
+  provider = "gemini",
   onDelta,
   onDone,
   onError,
 }: {
   messages: Message[];
   context?: MentorContext;
+  provider?: AiProvider;
   onDelta: (deltaText: string) => void;
   onDone: () => void;
   onError: (error: Error) => void;
 }) {
-  const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+  const CHAT_URL = getChatUrl(provider);
 
   // Подготавливаем данные для API
   const requestBody: {

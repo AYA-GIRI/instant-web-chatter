@@ -15,10 +15,10 @@ import {
   FileText,
   Key,
   Shield,
+  MessageSquare,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-// Map icon names to React components
 const iconMap: Record<string, LucideIcon> = {
   BookOpen,
   Zap,
@@ -35,6 +35,7 @@ const iconMap: Record<string, LucideIcon> = {
   FileText,
   Key,
   Shield,
+  MessageSquare,
 };
 
 /**

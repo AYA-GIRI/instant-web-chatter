@@ -19,7 +19,6 @@ import {
   Shield, 
   Users, 
   FileText, 
-  ClipboardList, 
   Check, 
   X, 
   Clock, 
@@ -33,27 +32,12 @@ import {
   Pencil,
   Trash2,
   Upload,
-  File
+  File,
+  GraduationCap,
 } from "lucide-react";
+import { PracticumBuilder } from "@/components/admin/PracticumBuilder";
 
 // Types for admin data
-type Application = {
-  id: string;
-  user_id: string;
-  status: string;
-  motivation_text: string;
-  phone: string | null;
-  university: string | null;
-  course: number | null;
-  created_at: string;
-  admin_notes: string | null;
-  reviewed_at: string | null;
-  profiles?: {
-    full_name: string | null;
-    avatar_url: string | null;
-  };
-};
-
 type Profile = {
   id: string;
   full_name: string | null;
@@ -93,9 +77,6 @@ type Method = {
 
 type Stats = {
   totalUsers: number;
-  totalApplications: number;
-  pendingApplications: number;
-  approvedApplications: number;
   totalMethods: number;
   completedTasks: number;
 };
@@ -127,22 +108,12 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
-    totalApplications: 0,
-    pendingApplications: 0,
-    approvedApplications: 0,
     totalMethods: 0,
     completedTasks: 0,
   });
-  const [applications, setApplications] = useState<Application[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [progress, setProgress] = useState<UserProgress[]>([]);
   const [methods, setMethods] = useState<Method[]>([]);
-
-  // Dialog state for application review
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
-  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [adminNotes, setAdminNotes] = useState("");
-  const [reviewLoading, setReviewLoading] = useState(false);
 
   // Dialog state for method editing
   const [methodDialogOpen, setMethodDialogOpen] = useState(false);
@@ -175,54 +146,24 @@ const Admin = () => {
     
     setLoading(true);
     try {
-      // Fetch stats in parallel
       const [
         profilesRes,
-        applicationsRes,
         methodsRes,
         progressRes,
       ] = await Promise.all([
         supabase.from("profiles").select("*"),
-        supabase.from("applications").select("*, profiles(full_name, avatar_url)"),
         supabase.from("methods").select("*").order("created_at", { ascending: false }),
         supabase.from("user_progress").select("*, profiles(full_name)"),
       ]);
 
-      // Process profiles
-      if (profilesRes.data) {
-        setProfiles(profilesRes.data);
-      }
-
-      // Process applications
-      if (applicationsRes.data) {
-        setApplications(applicationsRes.data);
-      }
-
-      // Process methods
-      if (methodsRes.data) {
-        setMethods(methodsRes.data);
-      }
-
-      // Process progress
-      if (progressRes.data) {
-        setProgress(progressRes.data);
-      }
-
-      // Calculate stats
-      const totalUsers = profilesRes.data?.length || 0;
-      const totalApplications = applicationsRes.data?.length || 0;
-      const pendingApplications = applicationsRes.data?.filter(a => a.status === "pending").length || 0;
-      const approvedApplications = applicationsRes.data?.filter(a => a.status === "approved").length || 0;
-      const totalMethods = methodsRes.data?.length || 0;
-      const completedTasks = progressRes.data?.filter(p => p.completed).length || 0;
+      if (profilesRes.data) setProfiles(profilesRes.data);
+      if (methodsRes.data) setMethods(methodsRes.data);
+      if (progressRes.data) setProgress(progressRes.data);
 
       setStats({
-        totalUsers,
-        totalApplications,
-        pendingApplications,
-        approvedApplications,
-        totalMethods,
-        completedTasks,
+        totalUsers: profilesRes.data?.length || 0,
+        totalMethods: methodsRes.data?.length || 0,
+        completedTasks: progressRes.data?.filter(p => p.completed).length || 0,
       });
 
     } catch (error) {
@@ -242,45 +183,6 @@ const Admin = () => {
       fetchData();
     }
   }, [isAdmin]);
-
-  // Handle application review
-  const handleReviewApplication = async (status: "approved" | "rejected") => {
-    if (!selectedApplication || !user) return;
-
-    setReviewLoading(true);
-    try {
-      const { error } = await supabase
-        .from("applications")
-        .update({
-          status,
-          admin_notes: adminNotes || null,
-          reviewed_by: user.id,
-          reviewed_at: new Date().toISOString(),
-        })
-        .eq("id", selectedApplication.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Успешно",
-        description: status === "approved" ? "Заявка одобрена" : "Заявка отклонена",
-      });
-
-      setReviewDialogOpen(false);
-      setSelectedApplication(null);
-      setAdminNotes("");
-      fetchData();
-    } catch (error) {
-      console.error("Error reviewing application:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось обновить заявку",
-        variant: "destructive",
-      });
-    } finally {
-      setReviewLoading(false);
-    }
-  };
 
   // Handle role change
   const handleRoleChange = async (profileId: string, newRole: string) => {
@@ -522,20 +424,6 @@ const Admin = () => {
     }
   };
 
-  // Status badge helper
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-600"><Clock className="w-3 h-3 mr-1" />Ожидает</Badge>;
-      case "approved":
-        return <Badge variant="secondary" className="bg-green-500/10 text-green-600"><Check className="w-3 h-3 mr-1" />Одобрено</Badge>;
-      case "rejected":
-        return <Badge variant="secondary" className="bg-red-500/10 text-red-600"><X className="w-3 h-3 mr-1" />Отклонено</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
-
   // Level badge helper
   const getLevelBadge = (level: string) => {
     switch (level) {
@@ -631,14 +519,9 @@ const Admin = () => {
                 <TrendingUp className="h-4 w-4" />
                 Обзор
               </TabsTrigger>
-              <TabsTrigger value="applications" className="flex items-center gap-2">
-                <ClipboardList className="h-4 w-4" />
-                Заявки
-                {stats.pendingApplications > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
-                    {stats.pendingApplications}
-                  </Badge>
-                )}
+              <TabsTrigger value="practicum" className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4" />
+                Практикум
               </TabsTrigger>
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
@@ -670,24 +553,6 @@ const Admin = () => {
 
                 <Card className="glass-panel border-white/40">
                   <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Заявки на стажировку</CardTitle>
-                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">{stats.totalApplications}</div>
-                    <div className="flex gap-2 mt-1">
-                      <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-600 text-xs">
-                        {stats.pendingApplications} ожидает
-                      </Badge>
-                      <Badge variant="secondary" className="bg-green-500/10 text-green-600 text-xs">
-                        {stats.approvedApplications} одобрено
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="glass-panel border-white/40">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
                     <CardTitle className="text-sm font-medium">Методички</CardTitle>
                     <FileText className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
@@ -710,60 +575,15 @@ const Admin = () => {
               </div>
             </TabsContent>
 
-            {/* Applications Tab */}
-            <TabsContent value="applications">
+            {/* Practicum Tab */}
+            <TabsContent value="practicum">
               <Card className="glass-panel border-white/40">
                 <CardHeader>
-                  <CardTitle>Заявки на стажировку</CardTitle>
-                  <CardDescription>Рассмотрение и модерация заявок студентов</CardDescription>
+                  <CardTitle>Конструктор практикумов</CardTitle>
+                  <CardDescription>Создание и редактирование курсов, уроков и блоков контента</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {applications.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Заявок пока нет</p>
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Пользователь</TableHead>
-                          <TableHead>Университет</TableHead>
-                          <TableHead>Курс</TableHead>
-                          <TableHead>Статус</TableHead>
-                          <TableHead>Дата</TableHead>
-                          <TableHead className="text-right">Действия</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {applications.map((app) => (
-                          <TableRow key={app.id}>
-                            <TableCell className="font-medium">
-                              {app.profiles?.full_name || "Без имени"}
-                            </TableCell>
-                            <TableCell>{app.university || "-"}</TableCell>
-                            <TableCell>{app.course || "-"}</TableCell>
-                            <TableCell>{getStatusBadge(app.status)}</TableCell>
-                            <TableCell>{formatDate(app.created_at)}</TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedApplication(app);
-                                  setAdminNotes(app.admin_notes || "");
-                                  setReviewDialogOpen(true);
-                                }}
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                Просмотр
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
+                  <PracticumBuilder />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -985,85 +805,6 @@ const Admin = () => {
           </Tabs>
         </div>
       </section>
-
-      {/* Application Review Dialog */}
-      <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Просмотр заявки</DialogTitle>
-            <DialogDescription>
-              Заявка от {selectedApplication?.profiles?.full_name || "пользователя"}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedApplication && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">Университет</Label>
-                  <p className="font-medium">{selectedApplication.university || "Не указан"}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Курс</Label>
-                  <p className="font-medium">{selectedApplication.course || "Не указан"}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Телефон</Label>
-                  <p className="font-medium">{selectedApplication.phone || "Не указан"}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Статус</Label>
-                  <div className="mt-1">{getStatusBadge(selectedApplication.status)}</div>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-muted-foreground">Мотивационное письмо</Label>
-                <div className="mt-1 p-3 bg-muted rounded-lg text-sm">
-                  {selectedApplication.motivation_text}
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="admin_notes">Заметки администратора</Label>
-                <Textarea
-                  id="admin_notes"
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Добавьте заметки..."
-                  className="mt-1"
-                />
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="gap-2">
-            {selectedApplication?.status === "pending" && (
-              <>
-                <Button
-                  variant="destructive"
-                  onClick={() => handleReviewApplication("rejected")}
-                  disabled={reviewLoading}
-                >
-                  {reviewLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <X className="h-4 w-4 mr-2" />}
-                  Отклонить
-                </Button>
-                <Button
-                  onClick={() => handleReviewApplication("approved")}
-                  disabled={reviewLoading}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {reviewLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Check className="h-4 w-4 mr-2" />}
-                  Одобрить
-                </Button>
-              </>
-            )}
-            <Button variant="outline" onClick={() => setReviewDialogOpen(false)}>
-              Закрыть
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Method Create/Edit Dialog */}
       <Dialog open={methodDialogOpen} onOpenChange={setMethodDialogOpen}>

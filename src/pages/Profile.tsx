@@ -3,6 +3,7 @@ import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +19,7 @@ const Profile = () => {
     const [formData, setFormData] = useState({
         full_name: profile?.full_name || '',
         avatar_url: profile?.avatar_url || '',
+        specialty_role: profile?.specialty_role ?? 'none',
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -25,7 +27,11 @@ const Profile = () => {
         setLoading(true);
 
         try {
-            await updateProfile(formData);
+            await updateProfile({
+                full_name: formData.full_name,
+                avatar_url: formData.avatar_url,
+                specialty_role: formData.specialty_role === 'none' ? null : formData.specialty_role,
+            });
             toast({
                 title: 'Успех',
                 description: 'Профиль успешно обновлен',
@@ -46,6 +52,7 @@ const Profile = () => {
         setFormData({
             full_name: profile?.full_name || '',
             avatar_url: profile?.avatar_url || '',
+            specialty_role: profile?.specialty_role ?? 'none',
         });
         setIsEditing(false);
     };
@@ -147,6 +154,51 @@ const Profile = () => {
                                         disabled
                                         className="bg-muted"
                                     />
+                                </div>
+
+                                {/* Specialty role */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="specialty_role">Профессиональная роль</Label>
+                                    {!isEditing ? (
+                                        <Input
+                                            id="specialty_role"
+                                            type="text"
+                                            value={
+                                                profile.specialty_role === 'developer'
+                                                    ? 'Разработчик'
+                                                    : profile.specialty_role === 'analyst'
+                                                    ? 'Аналитик'
+                                                    : profile.specialty_role === 'marketer'
+                                                    ? 'Маркетолог'
+                                                    : profile.specialty_role === 'designer'
+                                                    ? 'Дизайнер'
+                                                    : profile.specialty_role === 'tester'
+                                                    ? 'Тестировщик'
+                                                    : 'Не выбрана'
+                                            }
+                                            disabled
+                                            className="bg-muted"
+                                        />
+                                    ) : (
+                                        <Select
+                                            value={formData.specialty_role}
+                                            onValueChange={(value) =>
+                                                setFormData({ ...formData, specialty_role: value })
+                                            }
+                                        >
+                                            <SelectTrigger id="specialty_role">
+                                                <SelectValue placeholder="Выберите профессиональную роль" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Не выбрана</SelectItem>
+                                                <SelectItem value="developer">Разработчик</SelectItem>
+                                                <SelectItem value="analyst">Аналитик</SelectItem>
+                                                <SelectItem value="marketer">Маркетолог</SelectItem>
+                                                <SelectItem value="designer">Дизайнер</SelectItem>
+                                                <SelectItem value="tester">Тестировщик</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
                                 </div>
 
                                 {/* Action Buttons */}

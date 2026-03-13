@@ -42,6 +42,7 @@ type Profile = {
   id: string;
   full_name: string | null;
   role: string;
+  specialty_role: string | null;
   avatar_url: string | null;
   created_at: string;
 };
@@ -205,6 +206,32 @@ const Admin = () => {
       toast({
         title: "Ошибка",
         description: "Не удалось изменить роль",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle specialty role change
+  const handleSpecialtyRoleChange = async (profileId: string, newRole: string | null) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ specialty_role: newRole })
+        .eq("id", profileId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно",
+        description: "Профессиональная роль пользователя изменена",
+      });
+
+      fetchData();
+    } catch (error) {
+      console.error("Error changing specialty role:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось изменить профессиональную роль",
         variant: "destructive",
       });
     }
@@ -601,6 +628,7 @@ const Admin = () => {
                       <TableRow>
                         <TableHead>Имя</TableHead>
                         <TableHead>Роль</TableHead>
+                        <TableHead>Проф. роль</TableHead>
                         <TableHead>Дата регистрации</TableHead>
                         <TableHead className="text-right">Действия</TableHead>
                       </TableRow>
@@ -615,6 +643,29 @@ const Admin = () => {
                             <Badge variant={profile.role === "admin" ? "default" : "secondary"}>
                               {profile.role === "admin" ? "Админ" : "Студент"}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={profile.specialty_role || "none"}
+                              onValueChange={(value) =>
+                                handleSpecialtyRoleChange(
+                                  profile.id,
+                                  value === "none" ? null : value
+                                )
+                              }
+                            >
+                              <SelectTrigger className="w-40">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Не выбрана</SelectItem>
+                                <SelectItem value="developer">Разработчик</SelectItem>
+                                <SelectItem value="analyst">Аналитик</SelectItem>
+                                <SelectItem value="marketer">Маркетолог</SelectItem>
+                                <SelectItem value="designer">Дизайнер</SelectItem>
+                                <SelectItem value="tester">Тестировщик</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>{formatDate(profile.created_at)}</TableCell>
                           <TableCell className="text-right">

@@ -28,6 +28,16 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
+    // Force specialty role selection for authenticated users without it
+    // Allow access to /role itself to avoid redirect loops
+    if (
+        profile &&
+        profile.specialty_role == null &&
+        location.pathname !== '/role'
+    ) {
+        return <Navigate to="/role" state={{ from: location }} replace />;
+    }
+
     // Check admin requirement
     if (requireAdmin && profile?.role !== 'admin') {
         return (

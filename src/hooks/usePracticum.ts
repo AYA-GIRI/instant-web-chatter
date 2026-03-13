@@ -14,6 +14,12 @@ export type CourseWithLessons = PracticumCourse & {
   lessons: PracticumLesson[];
 };
 
+export type CommonBaseStatus = {
+  baseCourse: PracticumCourse | null;
+  isBaseCompleted: boolean;
+  loading: boolean;
+};
+
 // -- Загрузка списка всех курсов --
 export function usePracticumCourses() {
   const [courses, setCourses] = useState<PracticumCourse[]>([]);
@@ -162,3 +168,140 @@ export function useLessonWithSteps(courseSlug: string | undefined, lessonSlug: s
 
   return { lesson, course, allLessons, loading, error, reload };
 }
+
+// -- Общий статус обязательного базового курса --
+export function useCommonBaseStatus(userId: string | null | undefined): CommonBaseStatus {
+  const [baseCourse, setBaseCourse] = useState<PracticumCourse | null>(null);
+  const [isBaseCompleted, setIsBaseCompleted] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadStatus = async () => {
+      setLoading(true);
+      try {
+        // Ищем опубликованный курс, помеченный как базовый
+        const { data: courses, error: baseErr } = await supabase
+          .from("practicum_courses")
+          .select("*")
+          .eq("is_published", true)
+          .eq("is_common_base", true)
+          .order("sort_order", { ascending: true })
+          .limit(1);
+
+        if (baseErr) throw baseErr;
+
+        const base = (courses && courses[0]) || null;
+
+        // Если базовый курс не найден — fail open: не блокируем доступ
+        if (!base) {
+          if (!cancelled) {
+            setBaseCourse(null);
+            setIsBaseCompleted(true);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Если нет пользователя (теоретически не должно случаться из-за ProtectedRoute),
+        // считаем, что статус неизвестен и не блокируем.
+        if (!userId) {
+          if (!cancelled) {
+            setBaseCourse(base);
+            setIsBaseCompleted(true);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Загружаем опубликованные уроки базового курса
+        const { data: lessons, error: lessonsErr } = await supabase
+          .from("practicum_lessons")
+          .select("*")
+          .eq("course_id", base.id)
+          .eq("is_published", true)
+          .order("sort_order", { ascending: true });
+
+        if (lessonsErr) throw lessonsErr;
+
+        const lessonIds = (lessons || []).map((l) => l.id);
+
+        if (lessonIds.length === 0) {
+          // Нет опубликованных уроков — трактуем как завершённый, чтобы не блокировать
+          if (!cancelled) {
+            setBaseCourse(base);
+            setIsBaseCompleted(true);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Загружаем шаги всех уроков базового курса
+        const { data: steps, error: stepsErr } = await supabase
+          .from("practicum_steps")
+          .select("*")
+          .in("lesson_id", lessonIds)
+          .order("sort_order", { ascending: true });
+
+        if (stepsErr) throw stepsErr;
+
+        const interactiveSteps = (steps || []).filter(
+          (s) => s.step_type === "task" || s.step_type === "quiz"
+        );
+
+        // Если в базе нет интерактивных шагов — считаем курс завершённым
+        if (interactiveSteps.length === 0) {
+          if (!cancelled) {
+            setBaseCourse(base);
+            setIsBaseCompleted(true);
+            setLoading(false);
+          }
+          return;
+        }
+
+        // Загружаем прогресс пользователя только по шагам практикума
+        const { data: progress, error: progressErr } = await supabase
+          .from("user_progress")
+          .select("task_id, completed")
+          .eq("user_id", userId)
+          .like("task_id", "step_%");
+
+        if (progressErr) throw progressErr;
+
+        const completedStepIds = new Set<string>();
+        (progress || []).forEach((p) => {
+          if (p.completed) {
+            const stepId = p.task_id.replace("step_", "");
+            completedStepIds.add(stepId);
+          }
+        });
+
+        const allCompleted = interactiveSteps.every((s) => completedStepIds.has(s.id));
+
+        if (!cancelled) {
+          setBaseCourse(base);
+          setIsBaseCompleted(allCompleted);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Failed to load common base status:", err);
+        if (!cancelled) {
+          // В случае ошибки не блокируем пользователя
+          setBaseCourse(null);
+          setIsBaseCompleted(true);
+          setLoading(false);
+        }
+      }
+    };
+
+    loadStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  return { baseCourse, isBaseCompleted, loading };
+}
+

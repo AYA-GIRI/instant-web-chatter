@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ArrowRight, Loader2, BookOpen, Clock, CheckCircle2, Lock } from "lucide-react";
-import { useCourseBySlug, type PracticumStep } from "@/hooks/usePracticum";
+import { useCourseBySlug, useCommonBaseStatus, type PracticumStep } from "@/hooks/usePracticum";
 import { getIconByName } from "@/utils/methods";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 function getDifficultyColor(d: string) {
   switch (d) {
@@ -38,8 +39,11 @@ function getDifficultyLabel(d: string) {
 
 const PracticumCoursePage = () => {
   const { courseSlug } = useParams<{ courseSlug: string }>();
+  const navigate = useNavigate();
   const { course, loading, error } = useCourseBySlug(courseSlug);
   const { user } = useAuth();
+  const { toast } = useToast();
+  const { baseCourse, isBaseCompleted, loading: baseLoading } = useCommonBaseStatus(user?.id);
 
   // Steps for all lessons + user progress for lesson locking
   const [stepsByLesson, setStepsByLesson] = useState<Map<string, PracticumStep[]>>(new Map());
@@ -115,7 +119,19 @@ const PracticumCoursePage = () => {
     return ids;
   }, [course, isLessonCompleted]);
 
-  if (loading || !progressLoaded) {
+  useEffect(() => {
+    if (!course || !courseSlug || baseLoading) return;
+    if (!baseCourse || isBaseCompleted) return;
+    if (course.id === baseCourse.id) return;
+
+    toast({
+      title: "Сначала общий базовый курс",
+      description: "Вы будете перенаправлены на обязательный базовый курс.",
+    });
+    navigate(`/practicum/${baseCourse.slug}`, { replace: true });
+  }, [course, courseSlug, baseCourse, isBaseCompleted, baseLoading, navigate, toast]);
+
+  if (loading || !progressLoaded || baseLoading) {
     return (
       <div className="min-h-screen bg-transparent">
         <Navigation />

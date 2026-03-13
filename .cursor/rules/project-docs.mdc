@@ -1,0 +1,64 @@
+---
+description: Use project documentation as the source of truth for product and implementation decisions
+alwaysApply: true
+---
+
+This repository contains a documentation system that defines the product, user flows, content scope, implementation priorities, and MVP quality bar.
+
+Before making meaningful changes, read and follow:
+- docs/index/master-index.md
+
+Use these documents by purpose:
+- Product scope and meaning:
+  - docs/product/project-definition.md
+- User and admin flows:
+  - docs/product/user-journeys.md
+- Development priorities:
+  - docs/engineering/implementation-backlog.md
+  - docs/product/roadmap.md
+- Content and course design:
+  - docs/content/content-matrix.md
+  - docs/content/course-outlines.md
+  - docs/content/assignment-spec.md
+  - docs/content/ai-feedback-rubrics.md
+- Release readiness:
+  - docs/product/mvp-release-checklist.md
+- Technical current state:
+  - docs/tech/PROJECT_CONTEXT.md
+
+Rules:
+1. Do not invent product direction from code alone.
+2. Do not add features outside the project scope.
+3. Prefer coherent user flow over adding isolated features.
+4. If code and docs disagree, flag the mismatch explicitly.
+5. For larger changes, propose a short plan before coding.
+6. After meaningful changes, suggest doc updates if behavior or scope changed.
+7. Всегда отвечай по-русски и документацию делай на русском языке
+
+Текущее состояние реализации P0 из `docs/engineering/implementation-backlog.md`:
+
+- P0.1 — Явный выбор профессиональной роли:
+  - В схеме Supabase добавлено поле `profiles.specialty_role` (developer/analyst/marketer/designer/tester, NULL допустим).
+  - Фронтенд различает две роли: access-role (`role = student/admin` для прав доступа) и профессиональную `specialty_role` для треков.
+  - В `AuthContext` профиль расширен полем `specialty_role`, есть realtime‑подписка на обновления профиля текущего пользователя.
+  - После логина/регистрации аутентифицированный пользователь без `specialty_role` перенаправляется на `/role` и не может попасть на другие защищённые страницы, пока не выберет роль.
+  - Страница `/role` (RoleSelection) даёт выбрать одну из пяти профессиональных ролей и сохраняет её в профиле.
+  - Профиль (`/profile`) показывает текущую `specialty_role` и позволяет пользователю изменить её.
+  - В админке во вкладке пользователей доступен просмотр и изменение `specialty_role` любого пользователя.
+  - `/practicum` показывает блок «Ваша профессиональная роль» и мягкие рекомендации: рекомендованные для роли курсы помечаются бейджем и выводятся первыми. Маппинг ролей к slug курсов хранится в отдельном конфиге, а не в компоненте страницы.
+
+- P0.2 — Общий базовый курс как обязательный первый модуль:
+  - В `practicum_courses` добавлен флаг `is_common_base` (boolean, по умолчанию false) и частичный уникальный индекс, который гарантирует, что опубликованным может быть только один базовый курс одновременно.
+  - В `src/hooks/usePracticum.ts` реализован общий хук `useCommonBaseStatus(userId)`, который:
+    - находит опубликованный базовый курс;
+    - по его урокам и шагам (`task`/`quiz`) вычисляет, выполнены ли все интерактивные шаги пользователем по данным `user_progress`;
+    - возвращает единый источник правды: `baseCourse`, `isBaseCompleted`, `loading`;
+    - во всех ошибочных/пустых случаях (нет курса, нет уроков, нет интерактивных шагов, ошибка Supabase) ведёт себя по принципу fail‑open и не блокирует пользователя.
+  - Страница `/practicum`:
+    - показывает поясняющий блок про общий базовый курс (если он помечен и опубликован), с кнопкой перехода на базовый курс, пока он не завершён;
+    - визуально помечает ролевые курсы как «доступные после базового курса» и не даёт по кнопке сразу перейти в них, если база не завершена, при этом сам базовый курс всегда остаётся доступен;
+    - при отсутствии базового курса или при его завершении ведёт себя как обычная витрина курсов.
+  - Страницы курса и урока практикума (`/practicum/:courseSlug`, `/practicum/:courseSlug/:lessonSlug`):
+    - сохраняют существующий последовательный gating по урокам и шагам внутри курса;
+    - дополнительно используют `useCommonBaseStatus` и, если пользователь пытается открыть ролевой курс до завершения базы, мягко перенаправляют его на страницу курса общего базового модуля (а не на конкретный урок).
+  - В конструкторе практикумов (админка) для курсов добавлен флаг «Общий базовый курс» (`is_common_base`) с подписью о том, что отмеченный курс становится обязательным первым модулем; в списке курсов такой курс помечается бейджем «Базовый курс».

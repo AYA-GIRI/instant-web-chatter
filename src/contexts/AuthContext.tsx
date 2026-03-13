@@ -7,6 +7,7 @@ interface Profile {
     id: string;
     full_name: string | null;
     role: 'student' | 'admin';
+    specialty_role: 'developer' | 'analyst' | 'marketer' | 'designer' | 'tester' | null;
     avatar_url: string | null;
     created_at: string;
     updated_at: string;
@@ -98,6 +99,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         return () => subscription.unsubscribe();
     }, []);
+
+    // Subscribe to realtime profile updates for current user
+    useEffect(() => {
+        if (!user?.id) {
+            return;
+        }
+
+        const channel = supabase
+            .channel(`profile-updates-${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${user.id}`,
+                },
+                () => {
+                    fetchProfile(user.id);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user?.id]);
 
     // Sign in with email and password
     const signIn = async (email: string, password: string) => {

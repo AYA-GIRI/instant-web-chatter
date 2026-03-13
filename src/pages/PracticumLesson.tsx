@@ -6,7 +6,12 @@ import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, Lock } from
 import { useAuth } from "@/contexts/AuthContext";
 import { useAiProvider } from "@/hooks/useAiProvider";
 import { AiProviderSelect } from "@/components/AiProviderSelect";
-import { useLessonWithSteps, type PracticumStep, type LessonWithSteps } from "@/hooks/usePracticum";
+import {
+  useLessonWithSteps,
+  useCommonBaseStatus,
+  type PracticumStep,
+  type LessonWithSteps,
+} from "@/hooks/usePracticum";
 import { TheoryStep } from "@/components/practicum/TheoryStep";
 import { InfoStep } from "@/components/practicum/InfoStep";
 import { QuizStep } from "@/components/practicum/QuizStep";
@@ -26,6 +31,7 @@ const PracticumLessonPage = () => {
   const { provider, setProvider } = useAiProvider();
   const { toast } = useToast();
   const { lesson, course, allLessons, loading, error } = useLessonWithSteps(courseSlug, lessonSlug);
+  const { baseCourse, isBaseCompleted, loading: baseLoading } = useCommonBaseStatus(user?.id);
 
   const [stepProgress, setStepProgress] = useState<Record<string, StepProgress>>({});
   const [progressLoading, setProgressLoading] = useState(true);
@@ -156,6 +162,19 @@ const PracticumLessonPage = () => {
     }
   }, [progressLoading, lesson, unlockedLessonIds, allLessons, courseSlug, navigate, toast]);
 
+  // Глобальный gating по общему базовому курсу
+  useEffect(() => {
+    if (!course || !courseSlug || baseLoading) return;
+    if (!baseCourse || isBaseCompleted) return;
+    if (course.id === baseCourse.id) return;
+
+    toast({
+      title: "Сначала общий базовый курс",
+      description: "Вы будете перенаправлены на обязательный базовый курс.",
+    });
+    navigate(`/practicum/${baseCourse.slug}`, { replace: true });
+  }, [course, courseSlug, baseCourse, isBaseCompleted, baseLoading, navigate, toast]);
+
   const renderStep = (step: PracticumStep) => {
     switch (step.step_type) {
       case "theory":
@@ -186,7 +205,7 @@ const PracticumLessonPage = () => {
     }
   };
 
-  if (loading || progressLoading) {
+  if (loading || progressLoading || baseLoading) {
     return (
       <div className="min-h-screen bg-transparent">
         <Navigation />

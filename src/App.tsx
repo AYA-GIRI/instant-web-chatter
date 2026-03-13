@@ -8,12 +8,14 @@ import Methods from "./pages/Methods";
 import Practicum from "./pages/Practicum";
 import PracticumCourse from "./pages/PracticumCourse";
 import PracticumLesson from "./pages/PracticumLesson";
+import PromptPracticum from "./pages/PromptPracticum";
 import About from "./pages/About";
 import Login from "./pages/Login";
 import AuthCallback from "./pages/AuthCallback";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import RoleSelection from "./pages/RoleSelection";
 import { FloatingChat } from "@/components/FloatingChat";
 import { CustomCursor } from "@/components/CustomCursor";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -48,10 +50,26 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route
+              path="/role"
+              element={
+                <ProtectedRoute>
+                  <RoleSelection />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/profile"
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/prompt-practicum"
+              element={
+                <ProtectedRoute>
+                  <PromptPracticum />
                 </ProtectedRoute>
               }
             />

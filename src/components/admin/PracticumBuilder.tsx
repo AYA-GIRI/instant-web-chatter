@@ -68,6 +68,7 @@ type CourseFormData = {
   lessons_count: number;
   sort_order: number;
   is_published: boolean;
+  is_common_base: boolean;
 };
 
 type LessonFormData = {
@@ -187,6 +188,7 @@ const EMPTY_COURSE: CourseFormData = {
   lessons_count: 0,
   sort_order: 0,
   is_published: false,
+  is_common_base: false,
 };
 
 const EMPTY_LESSON: LessonFormData = {
@@ -383,6 +385,7 @@ export function PracticumBuilder() {
       lessons_count: course.lessons_count,
       sort_order: course.sort_order,
       is_published: course.is_published,
+      is_common_base: course.is_common_base ?? false,
     });
     setCourseSlugEdited(true);
     setCourseDialogOpen(true);
@@ -419,6 +422,7 @@ export function PracticumBuilder() {
         lessons_count: courseForm.lessons_count,
         sort_order: courseForm.sort_order,
         is_published: courseForm.is_published,
+        is_common_base: courseForm.is_common_base,
       };
 
       if (courseDialogMode === "create") {
@@ -892,6 +896,11 @@ export function PracticumBuilder() {
                               Скрыт
                             </Badge>
                           )}
+                              {course.is_common_base && (
+                                <Badge variant="outline" className="text-xs flex-shrink-0 border-amber-500/60 text-amber-600">
+                                  Базовый курс
+                                </Badge>
+                              )}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="outline" className="text-xs">{course.slug}</Badge>
@@ -1260,15 +1269,29 @@ export function PracticumBuilder() {
                 />
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Опубликован</Label>
-                <p className="text-sm text-muted-foreground">Курс будет виден студентам</p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Опубликован</Label>
+                  <p className="text-sm text-muted-foreground">Курс будет виден студентам</p>
+                </div>
+                <Switch
+                  checked={courseForm.is_published}
+                  onCheckedChange={(checked) => setCourseForm((p) => ({ ...p, is_published: checked }))}
+                />
               </div>
-              <Switch
-                checked={courseForm.is_published}
-                onCheckedChange={(checked) => setCourseForm((p) => ({ ...p, is_published: checked }))}
-              />
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Общий базовый курс</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Отмеченный базовый курс будет обязательным первым модулем перед ролевыми практикумами.
+                  </p>
+                </div>
+                <Switch
+                  checked={courseForm.is_common_base}
+                  onCheckedChange={(checked) => setCourseForm((p) => ({ ...p, is_common_base: checked }))}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>

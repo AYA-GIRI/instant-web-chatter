@@ -153,6 +153,12 @@ The platform stops feeling generic and starts feeling specialized.
 - the UI reflects the role;
 - the next course suggestions depend on the role.
 
+**Current status (codebase):** реализовано —
+- поле `profiles.specialty_role` добавлено в схему Supabase и типы;
+- после первой аутентификации пользователи без `specialty_role` проходят явный шаг выбора роли (`/role`);
+- профиль и админка позволяют просматривать и изменять профессиональную роль;
+- страница `/practicum` показывает блок «Ваша профессиональная роль» и мягкие рекомендации курсов по роли.
+
 ---
 
 ## P0.2 — Enforce the common base as a required first course
@@ -172,6 +178,12 @@ The learning flow becomes structured and predictable.
 ### Done when
 - users cannot start role tracks before finishing the common base;
 - the UI clearly explains progression.
+
+**Current status (codebase):** реализовано —
+- в `practicum_courses` добавлен флаг `is_common_base` и индекс, гарантирующий единственный опубликованный базовый курс;
+- хук `useCommonBaseStatus` вычисляет наличие и завершённость базового курса по данным `user_progress`;
+- `/practicum` визуально выделяет базовый курс и блокирует ролевые треки до его завершения;
+- страницы курса и урока практикума перенаправляют пользователя на базовый курс при попытке открыть ролевой до завершения базы.
 
 ---
 
@@ -197,6 +209,13 @@ The course catalog becomes understandable.
 - every course has a category;
 - the main user flow shows only in-scope learning paths;
 - optional/deep content does not interfere with the core path.
+
+**Current status (codebase):** частично реализовано в минимальном виде для MVP —
+- в `practicum_courses` добавлено поле `course_category` (`common_base` / `role_track` / `optional` / `NULL`) и CHECK‑ограничение, связывающее его с `is_common_base`;
+- страница `/practicum` группирует курсы по категориям в отдельные секции («Общий базовый модуль», «Ролевые треки», «Опциональные модули»), сохраняя существующий gating по базе и soft‑рекомендации по роли;
+- в конструкторе практикумов админ может явно задать тип курса, а в списке курсов категории отображаются бейджами.
+
+Оставшаяся часть P0.3 (переразметка контента и вынос out‑of‑scope курсов) остаётся продуктовой задачей и будет решаться на уровне контента и admin‑операций.
 
 ---
 

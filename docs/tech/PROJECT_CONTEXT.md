@@ -137,7 +137,12 @@ flowchart TB
 
 - PK: `id`
 - FK: `profiles.id -> auth.users.id`
-- Поля: `full_name`, `avatar_url`, `role` (check: `student|employee|admin`), `created_at`, `updated_at`
+- Поля:
+  - `full_name`
+  - `avatar_url`
+  - `role` (check: `student|employee|admin`) — access‑роль, используется для разграничения доступа (`student`/`admin`)
+  - `specialty_role` — профессиональная роль трека (`developer`/`analyst`/`marketer`/`designer`/`tester`, `NULL` допустим до выбора)
+  - `created_at`, `updated_at`
 
 ### `methods`
 
@@ -160,9 +165,25 @@ flowchart TB
 
 Иерархия: **course -> lesson -> step**.
 
-- `practicum_courses`: курсы (slug, title, difficulty, estimated_duration, lessons_count, sort_order, is_published, ...)
-- `practicum_lessons`: уроки внутри курса (course_id, slug, title, sort_order, is_published, ...)
-- `practicum_steps`: шаги урока (lesson_id, sort_order, step_type + поля по типам)
+- `practicum_courses`: курсы:
+  - `slug`, `title`, `description`
+  - визуальные поля: `icon_name`, `color`
+  - учебные метаданные: `difficulty` (`easy` / `medium` / `hard`), `estimated_duration`
+  - сервисные: `lessons_count`, `sort_order`
+  - публикация: `is_published`
+  - gating и таксономия:
+    - `is_common_base` (boolean) — флаг единственного общего базового курса; поверх него есть частичный уникальный индекс, который гарантирует, что опубликован только один базовый курс
+    - `course_category` (`common_base` / `role_track` / `optional` / `NULL`) — минимальная таксономия курсов практикума:
+      - `common_base` — общий базовый модуль (для всех ролей)
+      - `role_track` — ролевые треки по специальностям
+      - `optional` — опциональные/углубляющие модули
+      - `NULL` — временно неклассифицированные курсы (желательно не оставлять в актуальном MVP)
+    - CHECK‑ограничение в БД связывает `course_category` и `is_common_base`:
+      - `common_base` → `is_common_base = true`
+      - `role_track` / `optional` → `is_common_base = false`
+      - `NULL` — не проверяется (для обратной совместимости)
+- `practicum_lessons`: уроки внутри курса (`course_id`, `slug`, `title`, `description`, `sort_order`, `is_published`, `created_at`, `updated_at`)
+- `practicum_steps`: шаги урока (тип `step_type` + специализированные поля для theory/task/quiz/info)
 
 Статистика по шагам:
 - theory: 12

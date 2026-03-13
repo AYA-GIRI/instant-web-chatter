@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Target, Clock, ArrowRight, Loader2, Star } from "lucide-react";
-import { usePracticumCourses, useCommonBaseStatus } from "@/hooks/usePracticum";
+import { usePracticumCourses, useCommonBaseStatus, type PracticumCourse } from "@/hooks/usePracticum";
 import { getIconByName } from "@/utils/methods";
 import { useAuth } from "@/contexts/AuthContext";
 import { specialtyRecommendations, specialtyRoleTitles } from "@/config/specialtyRecommendations";
@@ -49,6 +49,127 @@ const Practicum = () => {
     return courseId !== baseCourse.id;
   };
 
+  const sortCoursesWithRecommendations = (items: PracticumCourse[]) => {
+    const recommendedSlugs =
+      profile?.specialty_role ? specialtyRecommendations[profile.specialty_role] || [] : [];
+    return [...items].sort((a, b) => {
+      const aRec = recommendedSlugs.includes(a.slug);
+      const bRec = recommendedSlugs.includes(b.slug);
+      if (aRec === bRec) return 0;
+      return aRec ? -1 : 1;
+    });
+  };
+
+  const renderCourseGrid = (items: PracticumCourse[]) => {
+    const sortedCourses = sortCoursesWithRecommendations(items);
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+        {sortedCourses.map((course) => {
+          const Icon = getIconByName(course.icon_name);
+          const isRecommended =
+            profile?.specialty_role &&
+            (specialtyRecommendations[profile.specialty_role] || []).includes(course.slug);
+          const isLockedByBase = getIsLockedByBase(course.id);
+
+          const handleLockedClick = () => {
+            if (!baseCourse) return;
+            toast({
+              title: "Сначала общий базовый курс",
+              description:
+                "Завершите обязательный базовый модуль, затем переходите к ролевым практикумам.",
+            });
+          };
+
+          const categoryLabel =
+            course.course_category === "common_base"
+              ? "Базовый модуль"
+              : course.course_category === "role_track"
+              ? "Ролевой трек"
+              : course.course_category === "optional"
+              ? "Опциональный модуль"
+              : null;
+
+          return (
+            <Card
+              key={course.id}
+              className={`glass-panel transition-all border-white/40 hover:border-primary hover:shadow-lg flex flex-col ${
+                isLockedByBase ? "opacity-70" : "cursor-pointer"
+              }`}
+            >
+              <CardHeader className="flex-1">
+                <div className="flex items-start justify-between mb-4">
+                  <div
+                    className="h-14 w-14 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: course.color + "20" }}
+                  >
+                    <Icon className="h-7 w-7" style={{ color: course.color }} />
+                  </div>
+                </div>
+                <CardTitle className="text-xl font-heading leading-tight break-words min-h-[3.5rem]">
+                  {course.title}
+                </CardTitle>
+                <CardDescription className="text-sm mt-2 line-clamp-3 min-h-[3.75rem]">
+                  {course.description}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    <Badge className={getDifficultyColor(course.difficulty)}>
+                      {getDifficultyLabel(course.difficulty)}
+                    </Badge>
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {course.estimated_duration}
+                    </Badge>
+                    <Badge variant="outline">{course.lessons_count} уроков</Badge>
+                    {categoryLabel && (
+                      <Badge variant="outline" className="text-xs">
+                        {categoryLabel}
+                      </Badge>
+                    )}
+                    {isRecommended && (
+                      <Badge
+                        variant="outline"
+                        className="flex items-center gap-1 border-primary/60 text-primary"
+                      >
+                        <Star className="h-3 w-3 fill-primary" />
+                        Рекомендовано для вашей роли
+                      </Badge>
+                    )}
+                    {isLockedByBase && baseCourse && course.id !== baseCourse.id && (
+                      <Badge
+                        variant="outline"
+                        className="flex items-center gap-1 border-amber-500/60 text-amber-600"
+                      >
+                        Сначала завершите базовый курс
+                      </Badge>
+                    )}
+                  </div>
+
+                  {isLockedByBase && baseCourse && course.id !== baseCourse.id ? (
+                    <Button className="w-full" variant="outline" onClick={handleLockedClick}>
+                      Доступен после базового курса
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Link to={`/practicum/${course.slug}`}>
+                      <Button className="w-full bg-primary hover:bg-primary/90">
+                        Начать практикум
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-transparent">
       <Navigation />
@@ -86,8 +207,9 @@ const Practicum = () => {
                       </p>
                     </div>
                     <p className="text-sm text-muted-foreground max-w-xl">
-                      Практикумы ниже помогают отработать применение AI именно в этой роли. Обратите
-                      внимание на пометку «Рекомендовано для вашей роли».
+                      Практикумы ниже помогают отработать применение AI именно в этой роли. Сначала
+                      пройдите общий базовый модуль, затем переходите к ролевым трекам; опциональные
+                      модули можно проходить дополнительно по желанию.
                     </p>
                   </div>
 
@@ -148,114 +270,34 @@ const Practicum = () => {
           )}
 
           {!loading && !error && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
-              {(() => {
-                const recommendedSlugs =
-                  profile?.specialty_role
-                    ? specialtyRecommendations[profile.specialty_role] || []
-                    : [];
-                const sortedCourses = [...courses].sort((a, b) => {
-                  const aRec = recommendedSlugs.includes(a.slug);
-                  const bRec = recommendedSlugs.includes(b.slug);
-                  if (aRec === bRec) return 0;
-                  return aRec ? -1 : 1;
-                });
+            <>
+              {courses.some((c) => c.course_category === "common_base") && (
+                <div className="mb-10">
+                  <h2 className="text-xl font-semibold mb-4">Общий базовый модуль</h2>
+                  {renderCourseGrid(courses.filter((c) => c.course_category === "common_base"))}
+                </div>
+              )}
 
-                return sortedCourses.map((course) => {
-                  const Icon = getIconByName(course.icon_name);
-                  const isRecommended =
-                    profile?.specialty_role &&
-                    (specialtyRecommendations[profile.specialty_role] || []).includes(course.slug);
-                  const isLockedByBase = getIsLockedByBase(course.id);
+              {courses.some((c) => c.course_category === "role_track") && (
+                <div className="mb-10">
+                  <h2 className="text-xl font-semibold mb-4">Ролевые треки</h2>
+                  {renderCourseGrid(courses.filter((c) => c.course_category === "role_track"))}
+                </div>
+              )}
 
-                  const handleLockedClick = () => {
-                    if (!baseCourse) return;
-                    toast({
-                      title: "Сначала общий базовый курс",
-                      description:
-                        "Завершите обязательный базовый модуль, затем переходите к ролевым практикумам.",
-                    });
-                  };
-
-                  return (
-                    <Card
-                      key={course.id}
-                      className={`glass-panel transition-all border-white/40 hover:border-primary hover:shadow-lg flex flex-col ${
-                        isLockedByBase ? "opacity-70" : "cursor-pointer"
-                      }`}
-                    >
-                      <CardHeader className="flex-1">
-                        <div className="flex items-start justify-between mb-4">
-                          <div
-                            className="h-14 w-14 rounded-xl flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: course.color + "20" }}
-                          >
-                            <Icon className="h-7 w-7" style={{ color: course.color }} />
-                          </div>
-                        </div>
-                        <CardTitle className="text-xl font-heading leading-tight break-words min-h-[3.5rem]">
-                          {course.title}
-                        </CardTitle>
-                        <CardDescription className="text-sm mt-2 line-clamp-3 min-h-[3.75rem]">
-                          {course.description}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="space-y-4">
-                          <div className="flex flex-wrap gap-2">
-                            <Badge className={getDifficultyColor(course.difficulty)}>
-                              {getDifficultyLabel(course.difficulty)}
-                            </Badge>
-                            <Badge variant="outline" className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {course.estimated_duration}
-                            </Badge>
-                            <Badge variant="outline">
-                              {course.lessons_count} уроков
-                            </Badge>
-                            {isRecommended && (
-                              <Badge
-                                variant="outline"
-                                className="flex items-center gap-1 border-primary/60 text-primary"
-                              >
-                                <Star className="h-3 w-3 fill-primary" />
-                                Рекомендовано для вашей роли
-                              </Badge>
-                            )}
-                            {isLockedByBase && baseCourse && course.id !== baseCourse.id && (
-                              <Badge
-                                variant="outline"
-                                className="flex items-center gap-1 border-amber-500/60 text-amber-600"
-                              >
-                                Сначала завершите базовый курс
-                              </Badge>
-                            )}
-                          </div>
-
-                          {isLockedByBase && baseCourse && course.id !== baseCourse.id ? (
-                            <Button
-                              className="w-full"
-                              variant="outline"
-                              onClick={handleLockedClick}
-                            >
-                              Доступен после базового курса
-                              <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                          ) : (
-                            <Link to={`/practicum/${course.slug}`}>
-                              <Button className="w-full bg-primary hover:bg-primary/90">
-                                Начать практикум
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                              </Button>
-                            </Link>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                });
-              })()}
-            </div>
+              {courses.some(
+                (c) => c.course_category === "optional" || c.course_category == null
+              ) && (
+                <div className="mb-4">
+                  <h2 className="text-xl font-semibold mb-4">Опциональные модули</h2>
+                  {renderCourseGrid(
+                    courses.filter(
+                      (c) => c.course_category === "optional" || c.course_category == null
+                    )
+                  )}
+                </div>
+              )}
+            </>
           )}
 
           {!loading && !error && courses.length === 0 && (

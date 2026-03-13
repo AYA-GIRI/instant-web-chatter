@@ -6,6 +6,8 @@ export type PracticumCourse = Tables<"practicum_courses">;
 export type PracticumLesson = Tables<"practicum_lessons">;
 export type PracticumStep = Tables<"practicum_steps">;
 
+export type CourseCategory = "common_base" | "role_track" | "optional";
+
 export type LessonWithSteps = PracticumLesson & {
   steps: PracticumStep[];
 };

@@ -68,7 +68,7 @@ type CourseFormData = {
   lessons_count: number;
   sort_order: number;
   is_published: boolean;
-  is_common_base: boolean;
+  course_category: "" | "common_base" | "role_track" | "optional";
 };
 
 type LessonFormData = {
@@ -188,7 +188,7 @@ const EMPTY_COURSE: CourseFormData = {
   lessons_count: 0,
   sort_order: 0,
   is_published: false,
-  is_common_base: false,
+  course_category: "",
 };
 
 const EMPTY_LESSON: LessonFormData = {
@@ -385,7 +385,9 @@ export function PracticumBuilder() {
       lessons_count: course.lessons_count,
       sort_order: course.sort_order,
       is_published: course.is_published,
-      is_common_base: course.is_common_base ?? false,
+      course_category:
+        (course.course_category as CourseFormData["course_category"]) ??
+        (course.is_common_base ? "common_base" : ""),
     });
     setCourseSlugEdited(true);
     setCourseDialogOpen(true);
@@ -411,6 +413,7 @@ export function PracticumBuilder() {
 
     setSaving(true);
     try {
+      const isCommonBase = courseForm.course_category === "common_base";
       const payload = {
         title: courseForm.title.trim(),
         slug: courseForm.slug.trim(),
@@ -422,7 +425,8 @@ export function PracticumBuilder() {
         lessons_count: courseForm.lessons_count,
         sort_order: courseForm.sort_order,
         is_published: courseForm.is_published,
-        is_common_base: courseForm.is_common_base,
+        is_common_base: isCommonBase,
+        course_category: courseForm.course_category || null,
       };
 
       if (courseDialogMode === "create") {
@@ -888,7 +892,7 @@ export function PracticumBuilder() {
                         <GraduationCap className="h-5 w-5" style={{ color: course.color }} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium truncate">{course.title}</span>
                           {!course.is_published && (
                             <Badge variant="outline" className="text-xs flex-shrink-0">
@@ -896,11 +900,22 @@ export function PracticumBuilder() {
                               Скрыт
                             </Badge>
                           )}
-                              {course.is_common_base && (
-                                <Badge variant="outline" className="text-xs flex-shrink-0 border-amber-500/60 text-amber-600">
-                                  Базовый курс
-                                </Badge>
-                              )}
+                          {course.course_category === "common_base" || course.is_common_base ? (
+                            <Badge
+                              variant="outline"
+                              className="text-xs flex-shrink-0 border-amber-500/60 text-amber-600"
+                            >
+                              Базовый курс
+                            </Badge>
+                          ) : course.course_category === "role_track" ? (
+                            <Badge variant="outline" className="text-xs flex-shrink-0">
+                              Ролевой трек
+                            </Badge>
+                          ) : course.course_category === "optional" ? (
+                            <Badge variant="outline" className="text-xs flex-shrink-0">
+                              Опциональный
+                            </Badge>
+                          ) : null}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="outline" className="text-xs">{course.slug}</Badge>
@@ -1280,17 +1295,35 @@ export function PracticumBuilder() {
                   onCheckedChange={(checked) => setCourseForm((p) => ({ ...p, is_published: checked }))}
                 />
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Общий базовый курс</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Отмеченный базовый курс будет обязательным первым модулем перед ролевыми практикумами.
-                  </p>
-                </div>
-                <Switch
-                  checked={courseForm.is_common_base}
-                  onCheckedChange={(checked) => setCourseForm((p) => ({ ...p, is_common_base: checked }))}
-                />
+              <div>
+                <Label>Тип курса</Label>
+                <p className="text-xs text-muted-foreground mb-1">
+                  Определяет место курса в структуре: общий базовый модуль, ролевой трек или опциональный модуль.
+                </p>
+                <Select
+                  value={courseForm.course_category}
+                  onValueChange={(value) =>
+                    setCourseForm((p) => ({
+                      ...p,
+                      course_category: value as CourseFormData["course_category"],
+                    }))
+                  }
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Выберите тип курса" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="common_base">
+                      Общий базовый модуль (для всех ролей)
+                    </SelectItem>
+                    <SelectItem value="role_track">
+                      Ролевой трек (для конкретной специальности)
+                    </SelectItem>
+                    <SelectItem value="optional">
+                      Опциональный/углубляющий модуль
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>

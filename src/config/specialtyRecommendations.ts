@@ -10,9 +10,9 @@ export const specialtyRoleTitles: Record<SpecialtyRole, string> = {
 
 export const specialtyRecommendations: Record<SpecialtyRole, string[]> = {
   developer: ['prompting', 'ai-for-developers'],
-  analyst: ['ml-basics'],
-  marketer: ['prompting'],
-  designer: ['neural-networks'],
-  tester: ['prompting'],
+  analyst: ['ml-basics', 'ai-for-analysts'],
+  marketer: ['prompting', 'ai-for-marketers'],
+  designer: ['neural-networks', 'ai-for-designers'],
+  tester: ['prompting', 'ai-for-testers'],
 };
 

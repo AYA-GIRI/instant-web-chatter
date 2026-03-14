@@ -43,9 +43,9 @@ export function QuizStep({ step, onComplete, isCompleted }: QuizStepProps) {
       <div className="space-y-2">
         {options.map((option, idx) => {
           let optionStyle = "bg-secondary/50 hover:bg-secondary border-border hover:border-primary/50";
-          if (answered && idx === correctIndex) {
+          if (answered && idx === selected && selected === correctIndex) {
             optionStyle = "bg-green-500/10 border-green-500/50 text-green-700";
-          } else if (answered && idx === selected && idx !== correctIndex) {
+          } else if (answered && idx === selected && selected !== correctIndex) {
             optionStyle = "bg-red-500/10 border-red-500/50 text-red-700";
           }
 
@@ -57,9 +57,9 @@ export function QuizStep({ step, onComplete, isCompleted }: QuizStepProps) {
               className={`w-full text-left p-3 rounded-lg border transition-all flex items-center gap-3 ${optionStyle}`}
             >
               <span className="flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center text-sm font-medium">
-                {answered && idx === correctIndex ? (
+                {answered && idx === selected && selected === correctIndex ? (
                   <CheckCircle2 className="h-5 w-5 text-green-500" />
-                ) : answered && idx === selected ? (
+                ) : answered && idx === selected && selected !== correctIndex ? (
                   <XCircle className="h-5 w-5 text-red-500" />
                 ) : (
                   String.fromCharCode(65 + idx)

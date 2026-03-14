@@ -19,25 +19,112 @@ export type CourseWithLessons = PracticumCourse & {
 export type CommonBaseStatus = {
   baseCourse: PracticumCourse | null;
   isBaseCompleted: boolean;
+  hasBaseProgress: boolean;
   loading: boolean;
 };
 
-// -- Загрузка списка всех курсов --
-export function usePracticumCourses() {
+// -- Загрузка списка всех курсов + статус завершения по пользователю --
+export function usePracticumCourses(userId?: string | null) {
   const [courses, setCourses] = useState<PracticumCourse[]>([]);
+  const [completedCourseIds, setCompletedCourseIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const fetchCourses = async () => {
+    const fetchCoursesAndProgress = async () => {
       try {
-        const { data, error: fetchErr } = await supabase
+        // 1. Загружаем все курсы
+        const { data: courseData, error: fetchErr } = await supabase
           .from("practicum_courses")
           .select("*")
           .order("sort_order", { ascending: true });
 
         if (fetchErr) throw new Error(fetchErr.message);
-        setCourses(data || []);
+        const allCourses = courseData || [];
+        setCourses(allCourses);
+
+        // Если нет пользователя — считаем, что прогресса нет
+        if (!userId || allCourses.length === 0) {
+          setCompletedCourseIds(new Set());
+          return;
+        }
+
+        const courseIds = allCourses.map((c) => c.id);
+
+        // 2. Загружаем уроки для всех курсов
+        const { data: lessonsData, error: lessonsErr } = await supabase
+          .from("practicum_lessons")
+          .select("id, course_id, is_published, sort_order")
+          .in("course_id", courseIds);
+
+        if (lessonsErr) throw new Error(lessonsErr.message);
+
+        const lessons = lessonsData || [];
+        const lessonIds = lessons.map((l) => l.id);
+
+        if (lessonIds.length === 0) {
+          setCompletedCourseIds(new Set());
+          return;
+        }
+
+        // 3. Загружаем шаги всех уроков
+        const { data: stepsData, error: stepsErr } = await supabase
+          .from("practicum_steps")
+          .select("id, lesson_id, step_type")
+          .in("lesson_id", lessonIds);
+
+        if (stepsErr) throw new Error(stepsErr.message);
+
+        const steps = stepsData || [];
+
+        // Группируем интерактивные шаги по курсу
+        const interactiveStepsByCourse = new Map<string, Set<string>>();
+        steps.forEach((step) => {
+          if (step.step_type !== "task" && step.step_type !== "quiz") return;
+          const lesson = lessons.find((l) => l.id === step.lesson_id);
+          if (!lesson) return;
+          const set = interactiveStepsByCourse.get(lesson.course_id) || new Set<string>();
+          set.add(step.id);
+          interactiveStepsByCourse.set(lesson.course_id, set);
+        });
+
+        // 4. Загружаем прогресс пользователя по шагам
+        const { data: progressData, error: progressErr } = await supabase
+          .from("user_progress")
+          .select("task_id, completed")
+          .eq("user_id", userId)
+          .like("task_id", "step_%");
+
+        if (progressErr) throw new Error(progressErr.message);
+
+        const completedStepIds = new Set<string>();
+        (progressData || []).forEach((p) => {
+          if (p.completed) {
+            const stepId = p.task_id.replace("step_", "");
+            completedStepIds.add(stepId);
+          }
+        });
+
+        // 5. Определяем завершённые курсы
+        const completedCourses = new Set<string>();
+        allCourses.forEach((course) => {
+          const interactive = interactiveStepsByCourse.get(course.id) || new Set<string>();
+
+          if (interactive.size === 0) {
+            // Нет интерактивных шагов — трактуем как незавершённый (чтобы не путать)
+            return;
+          }
+
+          const allInteractiveCompleted = Array.from(interactive).every((stepId) =>
+            completedStepIds.has(stepId)
+          );
+
+          if (allInteractiveCompleted) {
+            completedCourses.add(course.id);
+          }
+        });
+
+        setCompletedCourseIds(completedCourses);
       } catch (err) {
         setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
@@ -45,10 +132,10 @@ export function usePracticumCourses() {
       }
     };
 
-    fetchCourses();
-  }, []);
+    fetchCoursesAndProgress();
+  }, [userId]);
 
-  return { courses, loading, error };
+  return { courses, completedCourseIds, loading, error };
 }
 
 // -- Загрузка одного курса с уроками по slug --
@@ -175,6 +262,7 @@ export function useLessonWithSteps(courseSlug: string | undefined, lessonSlug: s
 export function useCommonBaseStatus(userId: string | null | undefined): CommonBaseStatus {
   const [baseCourse, setBaseCourse] = useState<PracticumCourse | null>(null);
   const [isBaseCompleted, setIsBaseCompleted] = useState<boolean>(false);
+  const [hasBaseProgress, setHasBaseProgress] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -201,6 +289,7 @@ export function useCommonBaseStatus(userId: string | null | undefined): CommonBa
           if (!cancelled) {
             setBaseCourse(null);
             setIsBaseCompleted(true);
+            setHasBaseProgress(false);
             setLoading(false);
           }
           return;
@@ -212,6 +301,7 @@ export function useCommonBaseStatus(userId: string | null | undefined): CommonBa
           if (!cancelled) {
             setBaseCourse(base);
             setIsBaseCompleted(true);
+            setHasBaseProgress(false);
             setLoading(false);
           }
           return;
@@ -234,6 +324,7 @@ export function useCommonBaseStatus(userId: string | null | undefined): CommonBa
           if (!cancelled) {
             setBaseCourse(base);
             setIsBaseCompleted(true);
+            setHasBaseProgress(false);
             setLoading(false);
           }
           return;
@@ -257,6 +348,7 @@ export function useCommonBaseStatus(userId: string | null | undefined): CommonBa
           if (!cancelled) {
             setBaseCourse(base);
             setIsBaseCompleted(true);
+            setHasBaseProgress(false);
             setLoading(false);
           }
           return;
@@ -280,10 +372,12 @@ export function useCommonBaseStatus(userId: string | null | undefined): CommonBa
         });
 
         const allCompleted = interactiveSteps.every((s) => completedStepIds.has(s.id));
+        const anyCompleted = completedStepIds.size > 0;
 
         if (!cancelled) {
           setBaseCourse(base);
           setIsBaseCompleted(allCompleted);
+          setHasBaseProgress(anyCompleted);
           setLoading(false);
         }
       } catch (err) {
@@ -292,6 +386,7 @@ export function useCommonBaseStatus(userId: string | null | undefined): CommonBa
           // В случае ошибки не блокируем пользователя
           setBaseCourse(null);
           setIsBaseCompleted(true);
+          setHasBaseProgress(false);
           setLoading(false);
         }
       }
@@ -304,6 +399,6 @@ export function useCommonBaseStatus(userId: string | null | undefined): CommonBa
     };
   }, [userId]);
 
-  return { baseCourse, isBaseCompleted, loading };
+  return { baseCourse, isBaseCompleted, hasBaseProgress, loading };
 }
 

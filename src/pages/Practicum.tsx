@@ -11,10 +11,11 @@ import { specialtyRecommendations, specialtyRoleTitles } from "@/config/specialt
 import { useToast } from "@/hooks/use-toast";
 
 const Practicum = () => {
-  const { courses, loading, error } = usePracticumCourses();
   const { profile, user } = useAuth();
+  const { courses, completedCourseIds, loading, error } = usePracticumCourses(user?.id);
   const { toast } = useToast();
-  const { baseCourse, isBaseCompleted, loading: baseLoading } = useCommonBaseStatus(user?.id);
+  const { baseCourse, isBaseCompleted, hasBaseProgress, loading: baseLoading } =
+    useCommonBaseStatus(user?.id);
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -67,6 +68,8 @@ const Practicum = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
         {sortedCourses.map((course) => {
           const Icon = getIconByName(course.icon_name);
+          const isBaseCourse = baseCourse && course.id === baseCourse.id;
+          const isCompleted = completedCourseIds.has(course.id);
           const isRecommended =
             profile?.specialty_role &&
             (specialtyRecommendations[profile.specialty_role] || []).includes(course.slug);
@@ -93,9 +96,11 @@ const Practicum = () => {
           return (
             <Card
               key={course.id}
-              className={`glass-panel transition-all border-white/40 hover:border-primary hover:shadow-lg flex flex-col ${
-                isLockedByBase ? "opacity-70" : "cursor-pointer"
-              }`}
+              className={`glass-panel transition-all flex flex-col ${
+                isCompleted
+                  ? "border-green-500 bg-green-500/20 hover:bg-green-500/25 hover:border-green-500 hover:shadow-lg"
+                  : "border-white/40 hover:border-primary hover:shadow-lg"
+              } ${isLockedByBase ? "opacity-70" : "cursor-pointer"}`}
             >
               <CardHeader className="flex-1">
                 <div className="flex items-start justify-between mb-4">
@@ -156,7 +161,11 @@ const Practicum = () => {
                   ) : (
                     <Link to={`/practicum/${course.slug}`}>
                       <Button className="w-full bg-primary hover:bg-primary/90">
-                        Начать практикум
+                        {isBaseCourse && isBaseCompleted
+                          ? "Просмотреть курс"
+                          : isBaseCourse && hasBaseProgress
+                          ? "Продолжить курс"
+                          : "Начать практикум"}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
@@ -243,11 +252,6 @@ const Practicum = () => {
                             Перейти к базовому курсу
                           </Button>
                         )}
-                        {isBaseCompleted && (
-                          <span className="text-xs text-muted-foreground">
-                            Базовый курс завершён — ролевые практикумы разблокированы
-                          </span>
-                        )}
                       </div>
                     </div>
                   )}
@@ -281,7 +285,14 @@ const Practicum = () => {
               {courses.some((c) => c.course_category === "role_track") && (
                 <div className="mb-10">
                   <h2 className="text-xl font-semibold mb-4">Ролевые треки</h2>
-                  {renderCourseGrid(courses.filter((c) => c.course_category === "role_track"))}
+                  {renderCourseGrid(
+                    courses.filter((c) => {
+                      if (c.course_category !== "role_track") return false;
+                      if (!profile?.specialty_role) return true;
+                      const rec = specialtyRecommendations[profile.specialty_role] || [];
+                      return rec.includes(c.slug);
+                    })
+                  )}
                 </div>
               )}
 

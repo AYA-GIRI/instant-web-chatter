@@ -78,137 +78,32 @@ Only one track needs to be actively completed in the MVP flow. More advanced mul
 Teach every user the basic principles of useful, safe, and role-aware AI usage.
 
 ### Suggested Course Length
-4 to 6 lessons.
+For the MVP pilot, the common-base course is implemented as **4 lessons**.
 
-### Recommended Module Structure
+### Implemented Common Base in Practicum
 
----
+In the current Supabase schema, the common-base course is stored as:
 
-## Lesson 1. What AI Is Useful For in Work
+- **Course slug:** `ai-foundations`  
+- **Course title (RU):** «Основы AI для работы»  
+- **Course category:** `common_base` (with `is_common_base = true`)
 
-### Goal
-Show AI as a practical assistant, not as magic or as a replacement for thinking.
+Implemented lessons:
 
-### Key ideas
-- AI helps accelerate work, not eliminate responsibility;
-- AI is useful for drafts, structuring, exploration, and iteration;
-- the user is still responsible for quality and verification.
+1. **Lesson 1 — AI as a work tool: where it helps and where it fails**  
+   - Russian title: «AI как рабочий инструмент: где помогает и где подводит»  
+   - Focus: mental model of AI as assistant, strengths/limits, need for verification.
+2. **Lesson 2 — How to write a good prompt**  
+   - Russian title: «Как сформулировать хороший промпт»  
+   - Focus: task, context, goal, constraints, output format; rewriting weak prompt into strong one.
+3. **Lesson 3 — How to improve a prompt iteratively**  
+   - Russian title: «Как улучшать промпт по шагам»  
+   - Focus: treating the first prompt as a draft; adding structure and constraints based on a weak answer.
+4. **Lesson 4 — Verification, safety, and independent tool research**  
+   - Russian title: «Проверка ответа, безопасность и самостоятельный поиск инструментов»  
+   - Focus: checking answers, basic safety, and evaluating new AI tools for the user’s specialty.
 
-### Block structure
-1. Markdown theory block
-2. Short comprehension test
-3. Mini practical reflection task
-
-### Example practical task
-The user gets 4 work scenarios and must identify where AI is useful, where it is risky, and where it is unnecessary.
-
----
-
-## Lesson 2. How to Formulate a Good Prompt
-
-### Goal
-Teach the user how to formulate clear, structured, actionable prompts.
-
-### Key ideas
-- role/context/task/output format/constraints;
-- avoid vague instructions;
-- define the expected result.
-
-### Block structure
-1. Markdown explanation
-2. Prompt comparison examples
-3. Short test
-4. AI-checked practice
-
-### Example practical task
-Rewrite a weak prompt into a strong prompt for a real work task.
-
----
-
-## Lesson 3. How to Improve a Prompt Iteratively
-
-### Goal
-Teach the user that the first prompt is a draft and that iteration improves results.
-
-### Key ideas
-- refine after first answer;
-- specify missing constraints;
-- ask for alternatives;
-- narrow the result format.
-
-### Block structure
-1. Markdown explanation
-2. Example dialogue improvement
-3. AI-checked task
-
-### Example practical task
-The user gets a task and a mediocre AI answer, then must write a follow-up prompt to improve the result.
-
----
-
-## Lesson 4. How to Check AI Output
-
-### Goal
-Teach the user not to trust the model blindly.
-
-### Key ideas
-- factual errors;
-- invented details;
-- weak structure;
-- mismatch between task and result;
-- the need for human judgment.
-
-### Block structure
-1. Markdown explanation
-2. Example answer analysis
-3. Test
-4. AI-checked practice
-
-### Example practical task
-The user is shown an AI response and must identify what is good, what is risky, and what must be checked manually.
-
----
-
-## Lesson 5. Safe and Responsible AI Usage
-
-### Goal
-Teach the user the minimum safe behavior when working with AI.
-
-### Key ideas
-- avoid careless sharing of sensitive data;
-- do not delegate responsibility blindly;
-- understand that tools differ in privacy, reliability, and use case.
-
-### Block structure
-1. Markdown theory
-2. Decision scenarios
-3. Test or classification task
-
-### Example practical task
-The user reviews several examples and decides which data can be safely shared with a tool and which should not.
-
----
-
-## Lesson 6. Choosing the Right Tool
-
-### Goal
-Teach users to think in terms of tool-task fit instead of using one AI for everything.
-
-### Key ideas
-- text models;
-- image generation tools;
-- research assistants;
-- coding assistants;
-- workflow automation tools.
-
-### Block structure
-1. Markdown overview
-2. Comparison table
-3. Matching task
-4. AI-checked reasoning task
-
-### Example practical task
-Given 5 real-world tasks, the user chooses the most appropriate tool category and explains why.
+Longer 5–6 lesson variants from earlier drafts can be treated as a future extension; the pilot uses this 4‑lesson structure.
 
 ---
 

@@ -9,7 +9,7 @@ export const specialtyRoleTitles: Record<SpecialtyRole, string> = {
 };
 
 export const specialtyRecommendations: Record<SpecialtyRole, string[]> = {
-  developer: ['prompting'],
+  developer: ['prompting', 'ai-for-developers'],
   analyst: ['ml-basics'],
   marketer: ['prompting'],
   designer: ['neural-networks'],

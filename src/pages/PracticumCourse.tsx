@@ -167,6 +167,13 @@ const PracticumCoursePage = () => {
 
   const Icon = getIconByName(course.icon_name);
   const firstLesson = course.lessons.length > 0 ? course.lessons[0] : null;
+  const allLessonsCompleted =
+    course.lessons.length > 0 && course.lessons.every((l) => isLessonCompleted(l.id));
+  const anyLessonCompleted =
+    course.lessons.length > 0 && course.lessons.some((l) => isLessonCompleted(l.id));
+  const nextLessonToOpen =
+    course.lessons.find((l) => !isLessonCompleted(l.id) && unlockedLessonIds.has(l.id)) ||
+    firstLesson;
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -243,7 +250,13 @@ const PracticumCoursePage = () => {
 
               return (
                 <Link key={lesson.id} to={`/practicum/${courseSlug}/${lesson.slug}`}>
-                  <Card className="glass-panel border-white/40 hover:border-primary hover:shadow-lg transition-all cursor-pointer">
+                  <Card
+                    className={`glass-panel transition-all cursor-pointer ${
+                      completed
+                        ? "border-green-500 bg-green-500/10 hover:bg-green-500/15 hover:border-green-500 hover:shadow-lg"
+                        : "border-white/40 hover:border-primary hover:shadow-lg"
+                    }`}
+                  >
                     <CardContent className="py-5 px-6">
                       <div className="flex items-center gap-4">
                         <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -270,12 +283,16 @@ const PracticumCoursePage = () => {
             })}
           </div>
 
-          {firstLesson && (
+          {nextLessonToOpen && (
             <div className="text-center mt-8">
-              <Link to={`/practicum/${courseSlug}/${firstLesson.slug}`}>
+              <Link to={`/practicum/${courseSlug}/${nextLessonToOpen.slug}`}>
                 <Button size="lg" className="gap-2">
                   <BookOpen className="h-5 w-5" />
-                  Начать курс
+                  {allLessonsCompleted
+                    ? "Просмотреть курс"
+                    : anyLessonCompleted
+                    ? "Продолжить курс"
+                    : "Начать курс"}
                 </Button>
               </Link>
             </div>

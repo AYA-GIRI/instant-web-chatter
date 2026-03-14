@@ -497,6 +497,34 @@ export function PracticumBuilder() {
     }));
   };
 
+  const recalculateLessonsCount = useCallback(
+    async (courseId: string) => {
+      try {
+        const { count, error } = await supabase
+          .from("practicum_lessons")
+          .select("id", { count: "exact", head: true })
+          .eq("course_id", courseId);
+        if (error) throw error;
+        if (typeof count === "number") {
+          await supabase
+            .from("practicum_courses")
+            .update({ lessons_count: count })
+            .eq("id", courseId);
+          setCourses((prev) =>
+            prev.map((c) => (c.id === courseId ? { ...c, lessons_count: count } : c)),
+          );
+          if (selectedCourse && selectedCourse.id === courseId) {
+            setSelectedCourse({ ...selectedCourse, lessons_count: count });
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        toast({ title: "Не удалось обновить количество уроков", variant: "destructive" });
+      }
+    },
+    [selectedCourse, toast],
+  );
+
   const saveLesson = async () => {
     if (!selectedCourse) return;
     if (!lessonForm.title.trim()) {
@@ -523,11 +551,7 @@ export function PracticumBuilder() {
         const { error } = await supabase.from("practicum_lessons").insert(payload);
         if (error) throw error;
         toast({ title: "Урок создан" });
-        // Update lessons_count in course
-        await supabase
-          .from("practicum_courses")
-          .update({ lessons_count: lessons.length + 1 })
-          .eq("id", selectedCourse.id);
+        await recalculateLessonsCount(selectedCourse.id);
       } else if (selectedLesson) {
         const { error } = await supabase.from("practicum_lessons").update(payload).eq("id", selectedLesson.id);
         if (error) throw error;
@@ -734,12 +758,9 @@ export function PracticumBuilder() {
 
       if (deleteTarget.type === "course") fetchCourses();
       else if (deleteTarget.type === "lesson" && selectedCourse) {
+        await recalculateLessonsCount(selectedCourse.id);
         fetchLessons(selectedCourse.id);
-        // Update lessons_count
-        const newCount = lessons.filter((l) => l.id !== deleteTarget.id).length;
-        await supabase.from("practicum_courses").update({ lessons_count: newCount }).eq("id", selectedCourse.id);
-      }
-      else if (deleteTarget.type === "step" && selectedLesson) fetchSteps(selectedLesson.id);
+      } else if (deleteTarget.type === "step" && selectedLesson) fetchSteps(selectedLesson.id);
     } catch (err: unknown) {
       console.error(err);
       const msg = err instanceof Error ? err.message : "Не удалось удалить";
@@ -785,11 +806,16 @@ export function PracticumBuilder() {
   };
 
   const updateCriteria = (idx: number, value: string) => {
-    setStepForm((prev) => {
-      const arr = [...prev.task_success_criteria];
-      arr[idx] = value;
-      return { ...prev, task_success_criteria: arr };
-    });
+    // legacy helper, не используется с textarea-критериями
+    setStepForm((prev) => ({ ...prev, task_success_criteria: prev.task_success_criteria }));
+  };
+
+  const setCriteriaFromText = (value: string) => {
+    const lines = value
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    setStepForm((prev) => ({ ...prev, task_success_criteria: lines }));
   };
 
   // --------------------------------------------------------
@@ -1064,16 +1090,49 @@ export function PracticumBuilder() {
       {!loading && view === "steps" && selectedLesson && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={goBack}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h3 className="text-lg font-semibold">Блоки контента ({steps.length})</h3>
+            <div>
+              <div className="flex items-center gap-3">
+                <Button variant="ghost" size="sm" onClick={goBack}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <h3 className="text-lg font-semibold">Блоки контента ({steps.length})</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Рекомендуемая структура урока: 1) Теория 2) Инфо-блок (пример/совет) 3) Квиз 4) Задание с AI-проверкой.
+              </p>
             </div>
-            <Button onClick={openTypePicker} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Добавить блок
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={openTypePicker}>
+                <Plus className="h-4 w-4 mr-2" />
+                Добавить блок
+              </Button>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  if (!selectedLesson) return;
+                  try {
+                    const baseLessonId = selectedLesson.id;
+                    const baseSort = steps.length;
+                    const inserts = [
+                      { lesson_id: baseLessonId, sort_order: baseSort + 1, step_type: "theory" },
+                      { lesson_id: baseLessonId, sort_order: baseSort + 2, step_type: "info", info_style: "tip" },
+                      { lesson_id: baseLessonId, sort_order: baseSort + 3, step_type: "quiz" },
+                      { lesson_id: baseLessonId, sort_order: baseSort + 4, step_type: "task" },
+                    ];
+                    const { error } = await supabase.from("practicum_steps").insert(inserts);
+                    if (error) throw error;
+                    toast({ title: "Каркас урока создан" });
+                    fetchSteps(baseLessonId);
+                  } catch (err) {
+                    console.error(err);
+                    toast({ title: "Не удалось создать каркас урока", variant: "destructive" });
+                  }
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Добавить каркас урока
+              </Button>
+            </div>
           </div>
 
           {steps.length === 0 ? (
@@ -1370,7 +1429,7 @@ export function PracticumBuilder() {
               <Textarea
                 value={lessonForm.description}
                 onChange={(e) => setLessonForm((p) => ({ ...p, description: e.target.value }))}
-                placeholder="Описание урока..."
+                placeholder="Цель урока (1–2 предложения): чему он научит и зачем это нужно."
                 className="mt-1"
                 rows={3}
               />
@@ -1510,6 +1569,9 @@ export function PracticumBuilder() {
                     placeholder="Какой элемент промпта задаёт формат ответа?"
                     className="mt-1"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Рекомендуется один вопрос на блок.
+                  </p>
                 </div>
                 <div>
                   <Label>Варианты ответа *</Label>
@@ -1560,7 +1622,7 @@ export function PracticumBuilder() {
                   <Textarea
                     value={stepForm.task_description}
                     onChange={(e) => setStepForm((p) => ({ ...p, task_description: e.target.value }))}
-                    placeholder="Напишите промпт, который..."
+                    placeholder="Опишите задачу, контекст и ожидаемый формат ответа (например, промпт, который должен написать студент)."
                     className="mt-1"
                     rows={4}
                   />
@@ -1598,27 +1660,15 @@ export function PracticumBuilder() {
                 </div>
                 <div>
                   <Label>Критерии успеха</Label>
-                  <div className="space-y-2 mt-1">
-                    {stepForm.task_success_criteria.map((crit, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <Input
-                          value={crit}
-                          onChange={(e) => updateCriteria(idx, e.target.value)}
-                          placeholder={`Критерий ${idx + 1}`}
-                          className="flex-1"
-                        />
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeCriteria(idx)}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    <Button variant="outline" size="sm" onClick={addCriteria}>
-                      <Plus className="h-4 w-4 mr-1" />
-                      Добавить критерий
-                    </Button>
-                  </div>
+                  <Textarea
+                    value={stepForm.task_success_criteria.join("\n")}
+                    onChange={(e) => setCriteriaFromText(e.target.value)}
+                    placeholder={"Одна строка = один критерий.\nНапример: \"Есть понятная цель\""}
+                    className="mt-1"
+                    rows={4}
+                  />
                   <p className="text-xs text-muted-foreground mt-1">
-                    AI будет проверять ответ по этим критериям
+                    AI будет проверять ответ по этим критериям; формулируйте их так, чтобы по ним было легко понять, хороший ли ответ.
                   </p>
                 </div>
               </>

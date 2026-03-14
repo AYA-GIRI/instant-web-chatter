@@ -222,7 +222,7 @@ const Practicum = () => {
                     </p>
                   </div>
 
-                  {!baseLoading && baseCourse && (
+                  {!baseLoading && baseCourse && !isBaseCompleted && (
                     <div className="mt-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                       <div>
                         <p className="text-sm font-medium text-primary">
@@ -236,22 +236,23 @@ const Practicum = () => {
                       <div className="flex flex-col items-start md:items-end gap-1">
                         <p className="text-sm font-medium">
                           Базовый курс:{" "}
-                          <span className="underline underline-offset-2">
-                            {baseCourse.title}
-                          </span>
-                        </p>
-                        {!isBaseCompleted && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="mt-1"
-                            onClick={() => {
-                              window.location.href = `/practicum/${baseCourse.slug}`;
-                            }}
+                          <Link
+                            to={`/practicum/${baseCourse.slug}`}
+                            className="underline underline-offset-2 text-primary hover:text-primary/80"
                           >
-                            Перейти к базовому курсу
-                          </Button>
-                        )}
+                            {baseCourse.title}
+                          </Link>
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-1"
+                          onClick={() => {
+                            window.location.href = `/practicum/${baseCourse.slug}`;
+                          }}
+                        >
+                          Перейти к базовому курсу
+                        </Button>
                       </div>
                     </div>
                   )}

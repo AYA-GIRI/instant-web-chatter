@@ -15,13 +15,13 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useIsAdmin } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Shield, 
-  Users, 
-  FileText, 
-  Check, 
-  X, 
-  Clock, 
+import {
+  Shield,
+  Users,
+  FileText,
+  Check,
+  X,
+  Clock,
   Loader2,
   RefreshCw,
   Eye,
@@ -34,6 +34,8 @@ import {
   Upload,
   File,
   GraduationCap,
+  AlertTriangle,
+  Activity,
 } from "lucide-react";
 import { PracticumBuilder } from "@/components/admin/PracticumBuilder";
 
@@ -57,6 +59,27 @@ type UserProgress = {
   profiles?: {
     full_name: string | null;
   };
+};
+
+type PracticumCourse = {
+  id: string;
+  title: string;
+  slug: string;
+  is_common_base: boolean;
+  course_category: string | null;
+};
+
+type PracticumLesson = {
+  id: string;
+  course_id: string;
+  title: string;
+  sort_order: number;
+};
+
+type PracticumStep = {
+  id: string;
+  lesson_id: string;
+  step_type: string;
 };
 
 type Method = {
@@ -115,6 +138,9 @@ const Admin = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [progress, setProgress] = useState<UserProgress[]>([]);
   const [methods, setMethods] = useState<Method[]>([]);
+  const [courses, setCourses] = useState<PracticumCourse[]>([]);
+  const [lessons, setLessons] = useState<PracticumLesson[]>([]);
+  const [steps, setSteps] = useState<PracticumStep[]>([]);
 
   // Dialog state for method editing
   const [methodDialogOpen, setMethodDialogOpen] = useState(false);
@@ -151,15 +177,30 @@ const Admin = () => {
         profilesRes,
         methodsRes,
         progressRes,
+        coursesRes,
+        lessonsRes,
+        stepsRes,
       ] = await Promise.all([
         supabase.from("profiles").select("*"),
         supabase.from("methods").select("*").order("created_at", { ascending: false }),
         supabase.from("user_progress").select("*, profiles(full_name)"),
+        supabase
+          .from("practicum_courses")
+          .select("id, title, slug, is_common_base, course_category")
+          .eq("is_published", true),
+        supabase
+          .from("practicum_lessons")
+          .select("id, course_id, title, sort_order")
+          .eq("is_published", true),
+        supabase.from("practicum_steps").select("id, lesson_id, step_type"),
       ]);
 
       if (profilesRes.data) setProfiles(profilesRes.data);
       if (methodsRes.data) setMethods(methodsRes.data);
       if (progressRes.data) setProgress(progressRes.data);
+      if (coursesRes.data) setCourses(coursesRes.data);
+      if (lessonsRes.data) setLessons(lessonsRes.data);
+      if (stepsRes.data) setSteps(stepsRes.data);
 
       setStats({
         totalUsers: profilesRes.data?.length || 0,
@@ -497,6 +538,218 @@ const Admin = () => {
     });
   };
 
+  const formatShortDate = (dateString: string | null) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleDateString("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+    });
+  };
+
+  const getRoleLabel = (role: string | null) => {
+    if (!role) return "Не выбрана";
+    switch (role) {
+      case "developer":
+        return "Разработчик";
+      case "analyst":
+        return "Аналитик";
+      case "marketer":
+        return "Маркетолог";
+      case "designer":
+        return "Дизайнер";
+      case "tester":
+        return "Тестировщик";
+      default:
+        return role;
+    }
+  };
+
+  // Aggregations for admin progress visibility
+  const interactiveStepTypes = new Set(["task", "quiz"]);
+
+  const stepMetaById = new Map<
+    string,
+    { lessonId: string; courseId: string; stepType: string }
+  >();
+
+  const courseById = new Map<string, PracticumCourse>();
+  courses.forEach((c) => {
+    courseById.set(c.id, c);
+  });
+
+  const lessonById = new Map<string, PracticumLesson>();
+  lessons.forEach((l) => {
+    lessonById.set(l.id, l);
+  });
+
+  steps.forEach((s) => {
+    const lesson = lessonById.get(s.lesson_id);
+    if (!lesson) return;
+    stepMetaById.set(s.id, {
+      lessonId: s.lesson_id,
+      courseId: lesson.course_id,
+      stepType: s.step_type,
+    });
+  });
+
+  const interactiveStepsByCourseId = new Map<string, number>();
+  steps.forEach((s) => {
+    const meta = stepMetaById.get(s.id);
+    if (!meta) return;
+    if (!interactiveStepTypes.has(meta.stepType)) return;
+    const prev = interactiveStepsByCourseId.get(meta.courseId) || 0;
+    interactiveStepsByCourseId.set(meta.courseId, prev + 1);
+  });
+
+  type UserCourseProgress = {
+    userId: string;
+    courseId: string;
+    completedSteps: number;
+    totalSteps: number;
+    lastCompletedAt: string | null;
+  };
+
+  const userProgressByUserCourse = new Map<string, UserCourseProgress>();
+  const totalCompletedStepsByUser = new Map<string, number>();
+
+  const baseCourse = courses.find((c) => c.is_common_base);
+
+  progress.forEach((p) => {
+    if (!p.task_id.startsWith("step_")) return;
+    const stepId = p.task_id.replace("step_", "");
+    const meta = stepMetaById.get(stepId);
+    if (!meta) return;
+
+    const courseId = meta.courseId;
+    const totalSteps = interactiveStepsByCourseId.get(courseId) || 0;
+    if (totalSteps === 0) return;
+
+    const key = `${p.user_id}:${courseId}`;
+    const existing = userProgressByUserCourse.get(key) || {
+      userId: p.user_id,
+      courseId,
+      completedSteps: 0,
+      totalSteps,
+      lastCompletedAt: null as string | null,
+    };
+
+    if (p.completed) {
+      existing.completedSteps += 1;
+      if (p.completed_at) {
+        if (
+          !existing.lastCompletedAt ||
+          new Date(p.completed_at) > new Date(existing.lastCompletedAt)
+        ) {
+          existing.lastCompletedAt = p.completed_at;
+        }
+      }
+
+      const prevTotal = totalCompletedStepsByUser.get(p.user_id) || 0;
+      totalCompletedStepsByUser.set(p.user_id, prevTotal + 1);
+    }
+
+    userProgressByUserCourse.set(key, existing);
+  });
+
+  const STUCK_DAYS = 7;
+  const stuckThresholdMs = STUCK_DAYS * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+
+  const stuckUserEntries: {
+    user: Profile;
+    course: PracticumCourse;
+    lastCompletedAt: string | null;
+    completedSteps: number;
+    totalSteps: number;
+  }[] = [];
+
+  userProgressByUserCourse.forEach((uc) => {
+    if (!uc.lastCompletedAt) return;
+    if (uc.completedSteps >= uc.totalSteps) return;
+    const course = courseById.get(uc.courseId);
+    if (!course) return;
+    const userProfile = profiles.find((p) => p.id === uc.userId);
+    if (!userProfile) return;
+
+    const lastTs = new Date(uc.lastCompletedAt).getTime();
+    if (now - lastTs >= stuckThresholdMs) {
+      stuckUserEntries.push({
+        user: userProfile,
+        course,
+        lastCompletedAt: uc.lastCompletedAt,
+        completedSteps: uc.completedSteps,
+        totalSteps: uc.totalSteps,
+      });
+    }
+  });
+
+  stuckUserEntries.sort((a, b) => {
+    const aTime = a.lastCompletedAt ? new Date(a.lastCompletedAt).getTime() : 0;
+    const bTime = b.lastCompletedAt ? new Date(b.lastCompletedAt).getTime() : 0;
+    return aTime - bTime;
+  });
+
+  const courseAggregates = Array.from(courseById.values()).map((course) => {
+    const totalSteps = interactiveStepsByCourseId.get(course.id) || 0;
+    if (totalSteps === 0) {
+      return {
+        course,
+        startedUsers: 0,
+        completedUsers: 0,
+      };
+    }
+
+    let startedUsers = 0;
+    let completedUsers = 0;
+
+    profiles.forEach((profile) => {
+      const key = `${profile.id}:${course.id}`;
+      const uc = userProgressByUserCourse.get(key);
+      if (!uc) return;
+      if (uc.completedSteps > 0) {
+        startedUsers += 1;
+      }
+      if (uc.completedSteps >= uc.totalSteps) {
+        completedUsers += 1;
+      }
+    });
+
+    return {
+      course,
+      startedUsers,
+      completedUsers,
+    };
+  });
+
+  const recentActivity = progress
+    .filter((p) => p.task_id.startsWith("step_"))
+    .slice()
+    .sort((a, b) => {
+      const aTime = a.completed_at
+        ? new Date(a.completed_at).getTime()
+        : 0;
+      const bTime = b.completed_at
+        ? new Date(b.completed_at).getTime()
+        : 0;
+      return bTime - aTime;
+    })
+    .slice(0, 20)
+    .map((p) => {
+      const stepId = p.task_id.replace("step_", "");
+      const meta = stepMetaById.get(stepId);
+      const lesson = meta ? lessonById.get(meta.lessonId) : undefined;
+      const course = meta ? courseById.get(meta.courseId) : undefined;
+      const userProfile = profiles.find((pr) => pr.id === p.user_id) || null;
+      return {
+        progress: p,
+        course,
+        lesson,
+        stepType: meta?.stepType || null,
+        userProfile,
+      };
+    });
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-transparent flex items-center justify-center">
@@ -802,7 +1055,10 @@ const Admin = () => {
               <Card className="glass-panel border-white/40">
                 <CardHeader>
                   <CardTitle>Прогресс студентов</CardTitle>
-                  <CardDescription>Отслеживание выполнения заданий практикума</CardDescription>
+                  <CardDescription>
+                    Агрегированный прогресс по пользователям и курсам на основе существующих
+                    данных user_progress
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {progress.length === 0 ? (
@@ -811,44 +1067,386 @@ const Admin = () => {
                       <p>Данных о прогрессе пока нет</p>
                     </div>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Пользователь</TableHead>
-                          <TableHead>Задание</TableHead>
-                          <TableHead>Статус</TableHead>
-                          <TableHead>Дата выполнения</TableHead>
-                          <TableHead>Заметки</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {progress.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="font-medium">
-                              {item.profiles?.full_name || "Без имени"}
-                            </TableCell>
-                            <TableCell>{item.task_id}</TableCell>
-                            <TableCell>
-                              {item.completed ? (
-                                <Badge variant="secondary" className="bg-green-500/10 text-green-600">
-                                  <Check className="w-3 h-3 mr-1" />
-                                  Выполнено
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-600">
-                                  <Clock className="w-3 h-3 mr-1" />
-                                  В процессе
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>{formatDate(item.completed_at)}</TableCell>
-                            <TableCell className="max-w-xs truncate">
-                              {item.notes || "-"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <div className="space-y-8">
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <Card className="border-white/30">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div>
+                                <CardTitle className="text-base">
+                                  Обзор по пользователям
+                                </CardTitle>
+                                <CardDescription>
+                                  Сколько шагов и курсов завершил каждый студент
+                                </CardDescription>
+                              </div>
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          </CardHeader>
+                          <CardContent className="pt-0">
+                            <div className="max-h-80 overflow-auto rounded-lg border border-border/60">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Пользователь</TableHead>
+                                    <TableHead>Роль</TableHead>
+                                    <TableHead className="text-right">
+                                      Завершено шагов
+                                    </TableHead>
+                                    <TableHead className="text-right">
+                                      Завершено курсов
+                                    </TableHead>
+                                    <TableHead className="text-right">
+                                      База
+                                    </TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {profiles.map((profile) => {
+                                    const totalSteps =
+                                      totalCompletedStepsByUser.get(profile.id) || 0;
+
+                                    let completedCourses = 0;
+                                    let baseCompleted = false;
+
+                                    courseAggregates.forEach((agg) => {
+                                      if (!agg.course) return;
+                                      const key = `${profile.id}:${agg.course.id}`;
+                                      const uc = userProgressByUserCourse.get(key);
+                                      if (!uc) return;
+                                      if (uc.completedSteps >= uc.totalSteps) {
+                                        completedCourses += 1;
+                                        if (
+                                          baseCourse &&
+                                          agg.course.id === baseCourse.id
+                                        ) {
+                                          baseCompleted = true;
+                                        }
+                                      }
+                                    });
+
+                                    if (totalSteps === 0 && completedCourses === 0) {
+                                      return null;
+                                    }
+
+                                    return (
+                                      <TableRow key={profile.id}>
+                                        <TableCell className="font-medium">
+                                          {profile.full_name || "Без имени"}
+                                        </TableCell>
+                                        <TableCell>
+                                          <Badge variant="outline" className="text-xs">
+                                            {getRoleLabel(profile.specialty_role)}
+                                          </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                          {totalSteps}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                          {completedCourses}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                          {baseCourse ? (
+                                            baseCompleted ? (
+                                              <Badge className="bg-green-500/10 text-green-600">
+                                                Завершена
+                                              </Badge>
+                                            ) : (
+                                              <Badge
+                                                variant="secondary"
+                                                className="bg-yellow-500/10 text-yellow-600"
+                                              >
+                                                Не завершена
+                                              </Badge>
+                                            )
+                                          ) : (
+                                            "-"
+                                          )}
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="border-white/30">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div>
+                                <CardTitle className="text-base">
+                                  Обзор по курсам
+                                </CardTitle>
+                                <CardDescription>
+                                  Сколько студентов начали и завершили каждый курс
+                                </CardDescription>
+                              </div>
+                              <BookOpen className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          </CardHeader>
+                          <CardContent className="pt-0">
+                            <div className="max-h-80 overflow-auto rounded-lg border border-border/60">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Курс</TableHead>
+                                    <TableHead>Тип</TableHead>
+                                    <TableHead className="text-right">
+                                      Начали
+                                    </TableHead>
+                                    <TableHead className="text-right">
+                                      Завершили
+                                    </TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {courseAggregates.map((agg) => {
+                                    const totalSteps =
+                                      interactiveStepsByCourseId.get(agg.course.id) || 0;
+                                    if (totalSteps === 0) return null;
+
+                                    const typeLabel =
+                                      agg.course.course_category === "common_base"
+                                        ? "Общий базовый"
+                                        : agg.course.course_category === "role_track"
+                                        ? "Ролевой трек"
+                                        : "Опциональный / другое";
+
+                                    return (
+                                      <TableRow key={agg.course.id}>
+                                        <TableCell className="font-medium">
+                                          {agg.course.title}
+                                        </TableCell>
+                                        <TableCell>
+                                          <Badge variant="outline" className="text-xs">
+                                            {typeLabel}
+                                          </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                          {agg.startedUsers}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                          {agg.completedUsers}
+                                        </TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <Card className="border-white/30">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div>
+                                <CardTitle className="text-base">
+                                  Возможные застрявшие
+                                </CardTitle>
+                                <CardDescription>
+                                  Пользователи, давно не двигавшиеся в курсе ({"≥"}
+                                  {STUCK_DAYS} дней)
+                                </CardDescription>
+                              </div>
+                              <AlertTriangle className="h-4 w-4 text-amber-500" />
+                            </div>
+                          </CardHeader>
+                          <CardContent className="pt-0">
+                            {stuckUserEntries.length === 0 ? (
+                              <p className="text-sm text-muted-foreground py-4">
+                                Сейчас нет очевидно застрявших пользователей по
+                                данным прогресса.
+                              </p>
+                            ) : (
+                              <div className="max-h-80 overflow-auto rounded-lg border border-border/60">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Пользователь</TableHead>
+                                      <TableHead>Курс</TableHead>
+                                      <TableHead className="text-right">
+                                        Прогресс
+                                      </TableHead>
+                                      <TableHead className="text-right">
+                                        Последний шаг
+                                      </TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {stuckUserEntries.map((entry, idx) => (
+                                      <TableRow key={`${entry.user.id}-${entry.course.id}-${idx}`}>
+                                        <TableCell className="font-medium">
+                                          {entry.user.full_name || "Без имени"}
+                                        </TableCell>
+                                        <TableCell>{entry.course.title}</TableCell>
+                                        <TableCell className="text-right text-sm">
+                                          {entry.completedSteps} / {entry.totalSteps}
+                                        </TableCell>
+                                        <TableCell className="text-right text-sm">
+                                          {formatShortDate(entry.lastCompletedAt)}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        <Card className="border-white/30">
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div>
+                                <CardTitle className="text-base">
+                                  Недавняя активность
+                                </CardTitle>
+                                <CardDescription>
+                                  Последние завершения шагов практикума
+                                </CardDescription>
+                              </div>
+                              <Activity className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          </CardHeader>
+                          <CardContent className="pt-0">
+                            {recentActivity.length === 0 ? (
+                              <p className="text-sm text-muted-foreground py-4">
+                                Недавних действий по шагам практикума пока нет.
+                              </p>
+                            ) : (
+                              <div className="max-h-80 overflow-auto rounded-lg border border-border/60">
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Пользователь</TableHead>
+                                      <TableHead>Курс / урок</TableHead>
+                                      <TableHead>Тип шага</TableHead>
+                                      <TableHead>Статус</TableHead>
+                                      <TableHead className="text-right">
+                                        Когда
+                                      </TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {recentActivity.map((item) => (
+                                      <TableRow key={item.progress.id}>
+                                        <TableCell className="font-medium">
+                                          {item.userProfile?.full_name || "Без имени"}
+                                        </TableCell>
+                                        <TableCell className="text-sm">
+                                          {item.course ? item.course.title : "—"}
+                                          {item.lesson
+                                            ? ` / ${item.lesson.title}`
+                                            : ""}
+                                        </TableCell>
+                                        <TableCell className="text-sm">
+                                          {item.stepType === "task"
+                                            ? "Задание"
+                                            : item.stepType === "quiz"
+                                            ? "Квиз"
+                                            : item.stepType || "—"}
+                                        </TableCell>
+                                        <TableCell>
+                                          {item.progress.completed ? (
+                                            <Badge
+                                              variant="secondary"
+                                              className="bg-green-500/10 text-green-600"
+                                            >
+                                              <Check className="w-3 h-3 mr-1" />
+                                              Выполнено
+                                            </Badge>
+                                          ) : (
+                                            <Badge
+                                              variant="secondary"
+                                              className="bg-yellow-500/10 text-yellow-600"
+                                            >
+                                              <Clock className="w-3 h-3 mr-1" />
+                                              В процессе
+                                            </Badge>
+                                          )}
+                                        </TableCell>
+                                        <TableCell className="text-right text-sm">
+                                          {formatShortDate(item.progress.completed_at)}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      <div className="pt-2 border-t border-border/60">
+                        <p className="text-xs text-muted-foreground">
+                          Сырые записи `user_progress` по-прежнему доступны ниже для
+                          детального разбора. Все агрегаты выше считаются только по
+                          шагам практикума формата <code>step_*</code>.
+                        </p>
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">
+                          Сырые записи прогресса
+                        </h3>
+                        <div className="rounded-lg border border-border/60 overflow-auto max-h-96">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Пользователь</TableHead>
+                                <TableHead>Задание</TableHead>
+                                <TableHead>Статус</TableHead>
+                                <TableHead>Дата выполнения</TableHead>
+                                <TableHead>Заметки</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {progress.map((item) => (
+                                <TableRow key={item.id}>
+                                  <TableCell className="font-medium">
+                                    {item.profiles?.full_name || "Без имени"}
+                                  </TableCell>
+                                  <TableCell className="text-sm">
+                                    {item.task_id}
+                                  </TableCell>
+                                  <TableCell>
+                                    {item.completed ? (
+                                      <Badge
+                                        variant="secondary"
+                                        className="bg-green-500/10 text-green-600"
+                                      >
+                                        <Check className="w-3 h-3 mr-1" />
+                                        Выполнено
+                                      </Badge>
+                                    ) : (
+                                      <Badge
+                                        variant="secondary"
+                                        className="bg-yellow-500/10 text-yellow-600"
+                                      >
+                                        <Clock className="w-3 h-3 mr-1" />
+                                        В процессе
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {formatDate(item.completed_at)}
+                                  </TableCell>
+                                  <TableCell className="max-w-xs truncate text-sm">
+                                    {item.notes || "-"}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </CardContent>
               </Card>
